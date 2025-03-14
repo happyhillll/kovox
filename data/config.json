@@ -6,7 +6,7 @@
   "loader": {
     "info": "data/info.md",
     "timeline": "data/timeline.csv",
-    "items": "data/(N)Updated_Music_Data_quarter.csv",
+    "items": "data/reallywanttogohome.csv",
     "voicetype": "data/voicetype.csv",
     "layouts": [
       {
@@ -56,63 +56,27 @@
     "structure": [
       {
         "name": "Title",
-        "source": "_Title",
+        "source": "_공연 제목",
         "display": "wide",
         "type": "markdown"
       },
       {
         "name": "Performing Date",
-        "source": "_PerformingDate",
+        "source": "_공연 날짜",
         "display": "column",
         "type": "text"
       },
       {
         "name": "Time",
-        "source": "_Time",
+        "source": "_공연 시작시간",
         "display": "column",
         "type": "text"
       },
       {
         "name": "Running Time",
-        "source": "_RunningTime",
+        "source": "_공연 소요시간",
         "display": "column",
         "type": "text"
-      },
-      {
-        "name": "Piano",
-        "source": "_Piano",
-        "display": "column",
-        "type": "text"
-      },
-      {
-        "name": "Location",
-        "source": "_Location",
-        "display": "column",
-        "type": "text"
-      },
-      {
-        "name": "Venue",
-        "source": "_Venue",
-        "display": "column",
-        "type": "text"
-      },
-      {
-        "name": "Country",
-        "source": "_Country",
-        "display": "column",
-        "type": "markdown"
-      },
-      {
-        "name": "Program URL",
-        "source": "_ProgramURL",
-        "display": "column",
-        "type": "markdown"
-      },
-      {
-        "name": "Program",
-        "source": "_Program",
-        "display": "wide",
-        "type": "markdown"
       }
     ]
   }
