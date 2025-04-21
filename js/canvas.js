@@ -564,6 +564,7 @@ function Canvas() {
     detailContainer.select(".outer").node().scrollTop = 0;
 
     detailContainer.classed("hide", false).classed("sneak", utils.isMobile());
+    detailContainer.style("width", "800px"); //변경
 
     // needs to be done better
     var detailData = {};
@@ -645,7 +646,10 @@ function Canvas() {
       state.lastZoomed = 0;
       showAllImages();
       clearBigImages();
-      detailContainer.classed("hide", true);
+      detailContainer
+        .classed("hide", true)
+        .classed("sneak", false)
+        .style("width", "0px");
     }
 
     timeline.update(x1, x2, scale, translate, scale1);

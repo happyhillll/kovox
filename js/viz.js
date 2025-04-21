@@ -111,10 +111,18 @@ function init() {
       canvas.split();
     });
 
-  d3.select(".slidebutton").on("click", function () {
-    var s = !d3.select(".sidebar").classed("sneak");
-    d3.select(".sidebar").classed("sneak", s);
-  });
+    d3.select(".slidebutton").on("click", function () {
+      var sb = d3.select(".sidebar");
+      var willOpen = !sb.classed("sneak");
+      sb.classed("sneak", willOpen);
+    // 접을 때(sneak=true)가 아니라 펼칠 때만 width 고정, 접을 땐 제거
+      if (willOpen) {
+       sb.style("width", "500px");
+      } else {
+       sb.style("width", null);
+      }
+    });
+    
 
   d3.select(".infobutton").on("click", function () {
     var s = !d3.select(".infobar").classed("sneak");

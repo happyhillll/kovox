@@ -6,7 +6,7 @@
   "loader": {
     "info": "data/info.md",
     "timeline": "data/timeline.csv",
-    "items": "data/reallywanttogohome.csv",
+    "items": "data/(0421)reallywanttogohome.csv",
     "voicetype": "data/voicetype.csv",
     "layouts": [
       {
@@ -50,19 +50,25 @@
     "searchbarBackground": "#ed6f63"
   },
   "projection": {
-    "columns": 6
+    "columns": 5
   },
   "detail": {
     "structure": [
       {
         "name": "Title",
-        "source": "_공연 제목",
+        "source": "_Title",
         "display": "wide",
         "type": "markdown"
       },
       {
         "name": "Performing Date",
         "source": "_공연 날짜",
+        "display": "column",
+        "type": "text"
+      },
+      {
+        "name": "Venue",
+        "source": "_Venue",
         "display": "column",
         "type": "text"
       },
@@ -77,6 +83,36 @@
         "source": "_공연 소요시간",
         "display": "column",
         "type": "text"
+      },
+      {
+        "name": "Ticket Price",
+        "source": "_Ticket",
+        "display": "column",
+        "type": "text"
+      },
+      {
+        "name": "Program",
+        "source": "_Program",
+        "display": "column",
+        "type": "markdown"
+      },
+      {
+        "name": "Singer",
+        "source": "_공연자 프로필",
+        "display": "column",
+        "type": "markdown"
+      },
+      {
+        "name": "Performer",  
+        "source": "_반주자 이름",
+        "display": "column",
+        "type": "markdown"
+      },
+      {
+        "name": "Performer_Profile",  
+        "source": "_반주자 프로필",
+        "display": "column",
+        "type": "markdown"
       }
     ]
   }
