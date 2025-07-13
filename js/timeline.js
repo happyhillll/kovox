@@ -88,6 +88,8 @@ function Timeline() {
         return d.key;
       });
 
+    // 아래는 entries(공연 정보 등)만 남기고, 연도(year) 라벨은 위에서만 추가되도록 한다.
+    // 중복되는 연도 라벨 추가 코드가 있다면 삭제 또는 주석 처리함.
     var e = enter
       .append("div")
       .classed("entries", true)

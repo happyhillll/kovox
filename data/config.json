@@ -6,7 +6,7 @@
   "loader": {
     "info": "data/info.md",
     "timeline": "data/timeline.csv",
-    "items": "data/(0421)reallywanttogohome.csv",
+    "items": "data/(0711)reallywanttogohome_filled.csv",
     "voicetype": "data/voicetype.csv",
     "layouts": [
       {
@@ -50,19 +50,19 @@
     "searchbarBackground": "#ed6f63"
   },
   "projection": {
-    "columns": 5
+    "columns": 6
   },
   "detail": {
     "structure": [
       {
         "name": "Title",
-        "source": "_Title",
+        "source": "_PerformanceTitle",
         "display": "wide",
         "type": "markdown"
       },
       {
         "name": "Performing Date",
-        "source": "_공연 날짜",
+        "source": "_PerformanceDate",
         "display": "column",
         "type": "text"
       },
@@ -73,20 +73,14 @@
         "type": "text"
       },
       {
-        "name": "Time",
-        "source": "_공연 시작시간",
-        "display": "column",
-        "type": "text"
-      },
-      {
         "name": "Running Time",
-        "source": "_공연 소요시간",
+        "source": "_PerformanceTime(Interval)",
         "display": "column",
         "type": "text"
       },
       {
         "name": "Ticket Price",
-        "source": "_Ticket",
+        "source": "_SeatPrice",
         "display": "column",
         "type": "text"
       },
@@ -98,19 +92,19 @@
       },
       {
         "name": "Singer",
-        "source": "_공연자 프로필",
+        "source": "_SingerAbstract",
         "display": "column",
         "type": "markdown"
       },
       {
-        "name": "Performer",  
-        "source": "_반주자 이름",
+        "name": "Accompanist",  
+        "source": "_AccompaniedPerformer",
         "display": "column",
         "type": "markdown"
       },
       {
-        "name": "Performer_Profile",  
-        "source": "_반주자 프로필",
+        "name": "Accompanist Profile",  
+        "source": "_AccompaniedPerformerAbstract",
         "display": "column",
         "type": "markdown"
       }

@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Load the Excel file
-file_path = 'data/final_rawdata.xlsx'  # Update this path
+file_path = '/Users/minjikim/GitHub/JODH/ver.2/(0711,ver.2)final_rawdata_nannfilled.xlsx'  # Update this path
 df = pd.read_excel(file_path, engine='openpyxl')
 
 # Ensure all relevant columns are treated as strings
@@ -40,15 +40,15 @@ def format_composer_info(row):
     else:
         song_info = f"{row['SongTitle']}"
     
-    if row['Translated']:
-        song_info += f" ({row['Translated']})"
+    # if row['Translated']:
+    #     song_info += f" ({row['Translated']})"
     
-    if row['FromOpera']:
-        song_info += f"\n_From Opera, {row['FromOpera']}_"
-    elif row['FromOratorio']:
-        song_info += f"\n_From Oratorio, {row['FromOratorio']}_"
-    elif row['FromCantata']:
-        song_info += f"\n_From Cantata {row['FromCantata']}_"
+    # if row['FromOpera']:
+    #     song_info += f"\n_From Opera, {row['FromOpera']}_"
+    # elif row['FromOratorio']:
+    #     song_info += f"\n_From Oratorio, {row['FromOratorio']}_"
+    # elif row['FromCantata']:
+    #     song_info += f"\n_From Cantata {row['FromCantata']}_"
     
     return composer_info.strip(', :.'), song_info.strip(', :.')
 
@@ -87,7 +87,7 @@ for identifier in sorted(program_dict.keys(), key=int, reverse=True):
 program_df = pd.DataFrame(data)
 
 # Save the new DataFrame to an Excel file
-excel_file_path = 'data/programs.xlsx'  # Update this path
+excel_file_path = '/Users/minjikim/GitHub/JODH/ver.2/(0711)programs.xlsx'  # Update this path
 program_df.to_excel(excel_file_path, index=False)
 
 print(f"Excel file saved to {excel_file_path}")

@@ -1,0 +1,9 @@
+# VIKUS Viewer 설정
+# 썸네일 이미지 폴더 경로
+thumbnail_folder = "vikus_thumbnails"
+
+# 지원하는 이미지 형식
+supported_formats = [".gif", ".jpg", ".jpeg", ".png"]
+
+# 이미지 크기 설정 (선택사항)
+thumbnail_size = "300x400"  # 너비x높이
