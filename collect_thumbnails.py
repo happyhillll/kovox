@@ -42,3 +42,4 @@ print(f"\n완료!")
 print(f"복사된 파일: {copied_count}개")
 print(f"건너뜀: {skipped_count}개")
 print(f"임시 폴더: {temp_dir}")
+
