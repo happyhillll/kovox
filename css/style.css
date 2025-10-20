@@ -812,12 +812,13 @@ svg {
     font-weight: 900;
     line-height: 1.2em;
     margin-top: 0;
-    font-size: 19px;
+    font-size: 32px;
     margin-bottom: 25px;
     text-transform: uppercase;
+    color: #333;
 }
 .detail h1 {
-    display: none;
+    display: block;
 }
 
 .detail p.info, .infobar p.info {

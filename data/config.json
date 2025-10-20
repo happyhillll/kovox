@@ -6,7 +6,7 @@
   "loader": {
     "info": "data/info.md",
     "timeline": "data/timeline.csv",
-    "items": "data/(0711)reallywanttogohome_filled.csv",
+    "items": "data/kovox_converted.csv",
     "voicetype": "data/voicetype.csv",
     "layouts": [
       {
@@ -50,7 +50,7 @@
     "searchbarBackground": "#ed6f63"
   },
   "projection": {
-    "columns": 6
+    "columns": 7
   },
   "detail": {
     "structure": [
@@ -79,8 +79,8 @@
         "type": "text"
       },
       {
-        "name": "Ticket Price",
-        "source": "_SeatPrice",
+        "name": "Ticket URL",
+        "source": "_티켓 사이트 주소",
         "display": "column",
         "type": "text"
       },
@@ -98,13 +98,25 @@
       },
       {
         "name": "Accompanist",  
-        "source": "_AccompaniedPerformer",
+        "source": "_반주자 이름_2",
         "display": "column",
         "type": "markdown"
       },
       {
         "name": "Accompanist Profile",  
-        "source": "_AccompaniedPerformerAbstract",
+        "source": "_반주자 프로필_2",
+        "display": "column",
+        "type": "markdown"
+      },
+      {
+        "name": "Organizer",  
+        "source": "_Organizer",
+        "display": "column",
+        "type": "markdown"
+      },
+      {
+        "name": "Sponsor",  
+        "source": "_SponsorOrganization",
         "display": "column",
         "type": "markdown"
       }
