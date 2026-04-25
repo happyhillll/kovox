@@ -170,6 +170,7 @@ function init() {
 
     s.on("click", function (d) {
       canvas.setMode(d.title);
+      timeline.setDisabled(d.title != "time");
       d3.selectAll(".navi .button").classed(
         "active",
         (d) => d.title == canvas.getMode()

@@ -3,9 +3,9 @@
 // 2015-2018
 
 function Tags() {
-  var margin = {top: 10, right: 20, bottom: 20, left: 10},
-      width = window.innerWidth - margin.left - margin.right,
-      height = 400 - margin.top - margin.bottom;
+  var margin = {top: 0, right: 0, bottom: 0, left: 0},
+      width = 220,
+      height = window.innerHeight;
 
   var container;
   var keywordsScale = d3.scale.linear();
@@ -13,9 +13,8 @@ function Tags() {
   var keywords = [];
   var wordBackground;
   var keywordsNestGlobal;
-  var sortKeywords = "alphabetical";
+  var sortKeywords = "count";
 
-  // var filterWords = ["Potsdam"];
   var filterWords = [];
   var data, filteredData;
   var activeWord;
@@ -41,8 +40,7 @@ function Tags() {
       .classed("tagcloud", true)
       .style("color", config.style.fontColor)
       .append("div")
-      //.attr("transform", "translate("+ margin.left +","+ margin.top +")")
-      
+
     if (config.sortKeywords != undefined) {
       sortKeywords = config.sortKeywords;
     }
@@ -52,9 +50,9 @@ function Tags() {
 
   tags.resize = function(){
     if(!state.init) return;
-    
-    width = window.innerWidth - margin.left - margin.right,
-    height = 400 - margin.top - margin.bottom;
+
+    width = 220,
+    height = window.innerHeight;
 
     container
       .style("width", width + margin.left + margin.right)
@@ -74,9 +72,6 @@ function Tags() {
       if(highlight) d.highlight = (matches.length == filterWords.length && search);
       else d.active = (matches.length == filterWords.length && search);
     });
-
-    // var anzahl = data.filter(function(d){ return d.active; }).length;
-    // c("anzahl", anzahl)
   }
 
   tags.update = function() {
@@ -84,7 +79,6 @@ function Tags() {
     tags.filter(filterWords);
 
     var keywords = [];
-    // var topographisch = [];
     data.forEach(function(d) {
       if(d.active){
         d.keywords.forEach(function(keyword) {
@@ -103,12 +97,7 @@ function Tags() {
         return b.values.length - a.values.length;
       })
 
-  var sliceNum = parseInt(sliceScale(width));
-
-  // c("num",sliceNum)
-
-   var keywordsNest = keywordsNestGlobal
-      .slice(0,sliceNum);
+  var keywordsNest = keywordsNestGlobal;
 
     if (sortKeywords == "alphabetical") {
       keywordsNest = keywordsNest.sort(function(a,b){
@@ -136,12 +125,9 @@ function Tags() {
       });
     }
 
-    // c("keywordsNest", keywordsNest);
-
     var keywordsExtent = d3.extent(keywordsNest, function (d) {
       return d.values.length;
     });
-
 
     keywordsScale
       .domain(keywordsExtent)
@@ -149,34 +135,20 @@ function Tags() {
 
     if(keywordsExtent[0]==keywordsExtent[1]) keywordsScale.range([15,15])
 
-
     keywordsOpacityScale
       .domain(keywordsExtent)
       .range([0.2,1]);
 
     layout(keywordsNest);
     tags.draw(keywordsNest);
-   
+
   }
 
   function layout(data){
-    var p = 1.8;
-    var p2 = 1;
-    var x0 = 0;
-
-    data.forEach(function(d){
-      d.x = x0 + keywordsScale(d.values.length)*p +p2;
-      x0 += keywordsScale(d.values.length)*p;
-    })
+    // 세로 리스트: 레이아웃 계산 불필요
   };
 
-  function getTranslateForList(data){
-    var w = _.last(data).x + 100;
-    return width/2 - w/2;
-  }
-
   tags.draw = function(words) {
-    // c(words)   
 
     var select = container
       .selectAll(".tag")
@@ -184,66 +156,32 @@ function Tags() {
 
     select
       .classed("active", function(d){ return filterWords.indexOf(d.key) > -1; })
-      // .transition()
-      // .duration(1000)
-      .style("transform", function(d,i){ return "translate(" + d.x + "px,0px) rotate(45deg)"; })
       .style("font-size", function(d) { return keywordsScale(d.values.length) + "px"; })
       .style("opacity", 1)
-      // .filter(function(d){ return filterWords.indexOf(d.key) > -1; })
-      //   .style("color", config.style.fontColorActive)
-      //   .style("background", config.style.fontBackground)
-        // .selectAll(".close div")
-        //   .style("background-color", config.style.fontColorActive)
-      //.text(function(d) { return d.key; })
-
-    // select.select("div")
-    //   .text(function(d) { return d.key; })
-      // .style("opacity", function(d){ return keywordsOpacityScale(d.values.length); })
 
     var e = select.enter().append("div")
         .classed("tag", true)
         .on("mouseenter", tags.mouseenter)
         .on("mouseleave", tags.mouseleave)
         .on("click", tags.mouseclick)
-        .style("transform", function(d,i){ return "translate(" + d.x + "px,0px) rotate(45deg)"; })
         .style("font-size", function(d) { return keywordsScale(d.values.length) + "px"; })
         .style("opacity", 0)
 
     e.append("span")
         .text(function(d) { return d.key; })
-    
+
     e.append("div")
       .classed("close", true)
-      // .attr("data-attr", config.style.fontColorActive)
-    // e.append("div")
-    //   .text(function(d) { return d.key; })
-      // .style("transform", function(d,i){ return "rotate(90deg)"; })
-      // .attr("dx", 25)
-      // .attr("dy", 5)
-      // .style("opacity", function(d){ return keywordsOpacityScale(d.values.length); })
-
 
     e.transition()
       .delay(400)
       .duration(0)
-      .style("transform", function(d,i){ return "translate(" + d.x + "px,0px) rotate(45deg)"; })
       .style("font-size", function(d) { return keywordsScale(d.values.length) + "px"; })
       .style("opacity", 1)
 
     select.exit()
-      // .transition()
-      // .duration(500)
       .style("opacity", 0)
-      // .transition()
-      // .duration(500)
       .remove();
-
-    if(words.length === 0) return
-
-    var w = getTranslateForList(words);
-
-    container
-      .style("transform", function(d,i){ return "translate(" + w + "px,0px)"; })
 
   }
 
@@ -251,8 +189,6 @@ function Tags() {
     filterWords = []
     tags.update();
     tags.highlightWords(filterWords);
-    // canvas.highlight();
-    // canvas.project()
   }
 
   tags.mouseclick = function (d) {
@@ -263,7 +199,6 @@ function Tags() {
     } else {
       filterWords.push(d.key);
     }
-    // c(filterWords);
 
     tags.update();
     tags.highlightWords(filterWords);
@@ -290,7 +225,6 @@ function Tags() {
   tags.mouseenter = function (d1) {
     if(lock) return;
 
-
     var tempFilterWords = _.clone(filterWords);
     tempFilterWords.push(d1.key)
 
@@ -298,7 +232,7 @@ function Tags() {
   }
 
   tags.filterWords = function(words){
-    
+
     tags.filter(words,1);
 
     container
@@ -311,7 +245,7 @@ function Tags() {
   }
 
   tags.highlightWords = function(words){
-    
+
     tags.filter(words,1);
 
     container
@@ -326,7 +260,7 @@ function Tags() {
   tags.search = function(query){
 
     state.search = query
-    
+
     tags.filter(filterWords, true);
     tags.update();
     canvas.highlight();

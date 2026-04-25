@@ -50,7 +50,7 @@
     "searchbarBackground": "#ed6f63"
   },
   "projection": {
-    "columns": 7
+    "columns": 6
   },
   "detail": {
     "structure": [
@@ -73,12 +73,6 @@
         "type": "text"
       },
       {
-        "name": "Running Time",
-        "source": "_PerformanceTime(Interval)",
-        "display": "column",
-        "type": "text"
-      },
-      {
         "name": "Ticket URL",
         "source": "_티켓 사이트 주소",
         "display": "column",
@@ -97,20 +91,20 @@
         "type": "markdown"
       },
       {
-        "name": "Accompanist",  
-        "source": "_반주자 이름_2",
+        "name": "Accompanist",
+        "source": "_반주자 이름_1",
         "display": "column",
         "type": "markdown"
       },
       {
-        "name": "Accompanist Profile",  
-        "source": "_반주자 프로필_2",
+        "name": "Accompanist Profile",
+        "source": "_반주자 프로필_1",
         "display": "column",
         "type": "markdown"
       },
       {
-        "name": "Organizer",  
-        "source": "_Organizer",
+        "name": "주최",
+        "source": "_OperatingOrganization",
         "display": "column",
         "type": "markdown"
       },

@@ -1,22 +1,17 @@
 .infobar {
-    float: left;
+    float: right;
     font-size: 15px;
-    /* font-family: "lyon-text"; */
-    z-index: 100;
+    z-index: 1000;
     height: 100%;
-    transition: left 0.3s ease-out;
-    /*box-shadow: 0 0px 56px rgba(0, 0, 0, 0.66), 0 0px 6px rgba(0, 0, 0, 0.23);*/
-    box-shadow: 5px 0px 0px rgba(0, 0, 0, 0.14);
-    left: 0px;
+    transition: right 0.3s ease-out;
+    box-shadow: -5px 0px 0px rgba(0, 0, 0, 0.14);
+    right: 0px;
     position: absolute;
     width: 480px;
     max-width: 100%;
     color: #fff;
     background: #353535;
     line-height: 1.3em;
-    /* overflow: auto; */
-    /*direction: rtl;*/
-    z-index: 1000;
     word-break: break-all;
 }
 
@@ -68,16 +63,16 @@
 }
 
 .infobar.sneak {
-    left: -480px;
+    right: -480px;
 }
 
 .infobar.sneak:hover {
-    left: -477px;
+    right: -477px;
 }
 
 .infobar .infobutton {
     z-index: 200;
-    right: 0px;
+    left: 0px;
     width: 50px;
     height: 100%;
     position: absolute;
@@ -88,10 +83,11 @@
     width: 20px;
     height: 30px;
     top: 50%;
-    left: 25%;
+    left: -25px;
     position: absolute;
     opacity: 0.5;
     transition: all 0.5s;
+    transform: rotate(180deg);
 }
 
 .infobar .infobutton svg path {
@@ -107,7 +103,7 @@
     z-index: 300;
     top: 30%;
     position: absolute;
-    left: 0;
+    right: 0;
 }
 
 .navi .button {
@@ -115,10 +111,7 @@
     text-transform: uppercase;
     font-size: 10px;
     z-index: 300;
-    /* display: none; */
-    /* background-size: 100% 100%; */
-    /* background-repeat: no-repeat; */
-    width: 60px;
+    width: 70px;
     height: 15px;
     padding-top: 6px;
     padding-bottom: 4px;
@@ -128,13 +121,13 @@
     font-weight: bold;
     color: #A2A2A2;
     margin-bottom: 5px;
+    margin-left: auto;
 }
 
 .navi .button.active {
     color: rgba(255, 255, 255, 0.75);
     background: #353636;
-    padding-right: 10px;
-    /* border-right: 4px solid rgba(247, 239, 205, 0.18); */
+    padding-left: 10px;
 }
 
 .navi .button:hover:not(.active) {
@@ -142,8 +135,8 @@
 }
 
 .infobar.sneak .infobutton svg {
-    left: 65px;
-    transform: rotate(180deg);
+    left: -25px;
+    transform: rotate(0deg);
 }
 
 .infobar h1 {
