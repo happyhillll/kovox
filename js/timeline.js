@@ -144,9 +144,7 @@ function Timeline() {
       .style("height", canvas.rangeBand() * scale + "px")
       .style("width", canvas.rangeBand() * scale + "px")
       .style("display", function (d, i) {
-        var width = canvas.rangeBand() * scale;
-        var hideBecauseOfSpace = width / d.key.length > 5 || i % 2 == 0;
-        return hideBecauseOfSpace && d.visible ? "block" : "none";
+        return d.visible ? "block" : "none";
       });
 
     select.select(".year").style("font-size", fontScaleYear(scale) + "px");
