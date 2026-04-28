@@ -2226,6 +2226,7 @@ function PerformancesList() {
   const [yearFilter, setYearFilter] = useStateR('all');
   const [venueFilter, setVenueFilter] = useStateR('all');
   const [searchQuery, setSearchQuery] = useStateR('');
+  const [viewMode, setViewMode] = useStateR('list'); // 'list' or 'card'
 
   const years = useMemoR(() => {
     const ys = new Set();
@@ -2256,7 +2257,10 @@ function PerformancesList() {
         });
       });
     }
-    if (sortBy === 'date-desc') list.sort((a, b) => b.performance_date.localeCompare(a.performance_date));
+    if (yearFilter !== 'all' && sortBy === 'date-desc') {
+      // When viewing a specific year, default to ascending (Jan first)
+      list.sort((a, b) => a.performance_date.localeCompare(b.performance_date));
+    } else if (sortBy === 'date-desc') list.sort((a, b) => b.performance_date.localeCompare(a.performance_date));
     else if (sortBy === 'date-asc') list.sort((a, b) => a.performance_date.localeCompare(b.performance_date));
     else if (sortBy === 'title') list.sort((a, b) => (a.performance_title || '').localeCompare(b.performance_title || ''));
     return list;
@@ -2303,7 +2307,14 @@ function PerformancesList() {
           ))}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[['list', '☰'], ['card', '▦']].map(([key, icon]) => (
+              <button key={key} onClick={() => setViewMode(key)} style={{ background: viewMode === key ? 'var(--coral)' : 'transparent', color: viewMode === key ? 'var(--bg-deep)' : 'var(--ink-soft)', border: viewMode === key ? 'none' : '1px solid var(--rule)', padding: '6px 12px', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>
+                {icon}
+              </button>
+            ))}
+          </div>
           <div style={{ display: 'flex', gap: 12 }}>
             {[['date-desc', 'NEWEST'], ['date-asc', 'OLDEST'], ['title', 'TITLE']].map(([key, label]) => (
               <button key={key} onClick={() => setSortBy(key)} className="mono" style={{ background: 'transparent', color: sortBy === key ? 'var(--coral)' : 'var(--ink-soft)', border: sortBy === key ? '1px solid var(--coral)' : '1px solid var(--rule)', padding: '8px 12px', fontSize: 10, cursor: 'pointer', letterSpacing: '0.1em' }}>
@@ -2314,22 +2325,80 @@ function PerformancesList() {
         </div>
       </section>
 
-      <section style={{ padding: '0 56px 80px' }}>
-        {filtered.map(p => {
-          const singer = perfSinger[p.performance_id];
-          const perfIdNum = p.performance_id.replace('PERF_', '');
-          return (
-            <a key={p.performance_id} href={'#/detail/' + perfIdNum} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 180px 160px 100px 30px', gap: 16, padding: '18px 0', borderTop: '1px solid var(--rule)', alignItems: 'baseline', textDecoration: 'none', color: 'inherit' }}>
-              <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.performance_date}</span>
-              <span className="display-kr" style={{ fontSize: 20 }}>{p.performance_title}</span>
-              <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.venue_name}</span>
-              <span className="display-kr" style={{ fontSize: 14 }}>{singer ? singer.person_name : ''}</span>
-              <span className="mono coral" style={{ fontSize: 10, letterSpacing: '0.1em' }}>{singer ? (singer.person_medium || '').toUpperCase() : ''}</span>
-              <span className="coral" style={{ fontSize: 16, textAlign: 'right' }}>→</span>
-            </a>
-          );
-        })}
-      </section>
+      {viewMode === 'list' ? (
+        <section style={{ padding: '0 56px 80px' }}>
+          {filtered.map((p, idx) => {
+            const singer = perfSinger[p.performance_id];
+            const perfIdNum = p.performance_id.replace('PERF_', '');
+            const ym = p.performance_date ? p.performance_date.slice(0, 7) : '';
+            const prevYm = idx > 0 && filtered[idx - 1].performance_date ? filtered[idx - 1].performance_date.slice(0, 7) : '';
+            const showMonthHeader = ym && ym !== prevYm;
+
+            return (
+              <React.Fragment key={p.performance_id}>
+                {showMonthHeader && (
+                  <div style={{ padding: '28px 0 12px', borderBottom: '2px solid var(--rule)', marginTop: idx > 0 ? 24 : 0 }}>
+                    <span className="display coral" style={{ fontSize: 36 }}>{ym.replace('-', '.')}</span>
+                  </div>
+                )}
+                <a href={'#/detail/' + perfIdNum} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 180px 160px 100px 30px', gap: 16, padding: '18px 0', borderTop: '1px solid var(--rule)', alignItems: 'baseline', textDecoration: 'none', color: 'inherit' }}>
+                  <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.performance_date}</span>
+                  <span className="display-kr" style={{ fontSize: 20 }}>{p.performance_title}</span>
+                  <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.venue_name}</span>
+                  <span className="display-kr" style={{ fontSize: 14 }}>{singer ? singer.person_name : ''}</span>
+                  <span className="mono coral" style={{ fontSize: 10, letterSpacing: '0.1em' }}>{singer ? (singer.person_medium || '').toUpperCase() : ''}</span>
+                  <span className="coral" style={{ fontSize: 16, textAlign: 'right' }}>→</span>
+                </a>
+              </React.Fragment>
+            );
+          })}
+        </section>
+      ) : (
+        <section style={{ padding: '24px 56px 80px' }}>
+          {(() => {
+            const groups = [];
+            let currentYm = '';
+            filtered.forEach(p => {
+              const ym = p.performance_date ? p.performance_date.slice(0, 7) : '';
+              if (ym !== currentYm) {
+                groups.push({ ym, items: [] });
+                currentYm = ym;
+              }
+              groups[groups.length - 1].items.push(p);
+            });
+            return groups.map(g => (
+              <div key={g.ym}>
+                <div style={{ padding: '28px 0 16px', borderBottom: '2px solid var(--rule)', marginTop: 16 }}>
+                  <span className="display coral" style={{ fontSize: 36 }}>{g.ym.replace('-', '.')}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20, paddingTop: 20 }}>
+                  {g.items.map(p => {
+                    const singer = perfSinger[p.performance_id];
+                    const perfIdNum = p.performance_id.replace('PERF_', '');
+                    return (
+                      <a key={p.performance_id} href={'#/detail/' + perfIdNum} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div style={{ position: 'relative', background: '#000', aspectRatio: '3/4', overflow: 'hidden', marginBottom: 10 }}>
+                          <img src={'viewer/data/1024/' + perfIdNum + '.jpg'} alt={p.performance_title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            onError={(e) => { e.target.style.display = 'none'; }} />
+                        </div>
+                        <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)' }}>{p.performance_date}</div>
+                        <div className="display-kr" style={{ fontSize: 15, marginTop: 3, lineHeight: 1.3 }}>{p.performance_title}</div>
+                        <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 4 }}>{p.venue_name}</div>
+                        {singer && (
+                          <div style={{ marginTop: 4 }}>
+                            <span className="display-kr" style={{ fontSize: 12 }}>{singer.person_name}</span>
+                            <span className="mono coral" style={{ fontSize: 9, marginLeft: 6 }}>{(singer.person_medium || '').toUpperCase()}</span>
+                          </div>
+                        )}
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            ));
+          })()}
+        </section>
+      )}
     </div>
   );
 }
