@@ -2231,7 +2231,7 @@ function PerformancesList() {
   const [yearFilter, setYearFilter] = useStateR('all');
   const [venueFilter, setVenueFilter] = useStateR('all');
   const [searchQuery, setSearchQuery] = useStateR('');
-  const [viewMode, setViewMode] = useStateR('list'); // 'list' or 'card'
+  const [viewMode, setViewMode] = useStateR('card'); // 'list' or 'card'
 
   const years = useMemoR(() => {
     const ys = new Set();
@@ -2371,30 +2371,45 @@ function PerformancesList() {
               }
               groups[groups.length - 1].items.push(p);
             });
+            // Deterministic pseudo-random from ID
+            const hashNum = (s) => { let h = 0; for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0; return h; };
+
             return groups.map(g => (
               <div key={g.ym}>
                 <div style={{ padding: '28px 0 16px', borderBottom: '2px solid var(--rule)', marginTop: 16 }}>
                   <span className="display coral" style={{ fontSize: 36 }}>{g.ym.replace('-', '.')}</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20, paddingTop: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 32, paddingTop: 28 }}>
                   {g.items.map(p => {
                     const singer = perfSinger[p.performance_id];
                     const perfIdNum = p.performance_id.replace('PERF_', '');
+                    const h = hashNum(perfIdNum);
+                    const rotate = ((h % 7) - 3) * 0.7;
+                    const tapeRotate = ((h >> 4) % 5 - 2) * 3;
+                    const tapeLeft = 30 + ((h >> 8) % 40);
                     return (
-                      <a key={p.performance_id} href={'#/detail/' + perfIdNum} style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <div style={{ position: 'relative', background: '#000', aspectRatio: '3/4', overflow: 'hidden', marginBottom: 10 }}>
+                      <a key={p.performance_id} href={'#/detail/' + perfIdNum} style={{ textDecoration: 'none', color: 'inherit', transform: `rotate(${rotate}deg)`, transition: 'transform 0.25s ease, box-shadow 0.25s ease', display: 'block' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'rotate(0deg) scale(1.04)'; e.currentTarget.style.zIndex = '10'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.5)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = `rotate(${rotate}deg)`; e.currentTarget.style.zIndex = '1'; e.currentTarget.style.boxShadow = 'none'; }}>
+                        <div style={{ position: 'relative', background: '#111', aspectRatio: '3/4', overflow: 'hidden', boxShadow: '2px 4px 12px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3)' }}>
+                          {/* Tape strip */}
+                          <div style={{ position: 'absolute', top: -6, left: tapeLeft + '%', transform: `rotate(${tapeRotate}deg)`, width: 48, height: 18, background: 'rgba(255,248,220,0.55)', zIndex: 2, backdropFilter: 'blur(1px)', borderRadius: 1 }} />
                           <img src={'viewer/data/1024/' + perfIdNum + '.jpg'} alt={p.performance_title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                             onError={(e) => { e.target.style.display = 'none'; }} />
+                          {/* Subtle worn edge overlay */}
+                          <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 20px rgba(0,0,0,0.3)', pointerEvents: 'none' }} />
                         </div>
-                        <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)' }}>{p.performance_date}</div>
-                        <div className="display-kr" style={{ fontSize: 15, marginTop: 3, lineHeight: 1.3 }}>{p.performance_title}</div>
-                        <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 4 }}>{p.venue_name}</div>
-                        {singer && (
-                          <div style={{ marginTop: 4 }}>
-                            <span className="display-kr" style={{ fontSize: 12 }}>{singer.person_name}</span>
-                            <span className="mono coral" style={{ fontSize: 9, marginLeft: 6 }}>{(singer.person_medium || '').toUpperCase()}</span>
-                          </div>
-                        )}
+                        <div style={{ padding: '10px 4px 0' }}>
+                          <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)' }}>{p.performance_date}</div>
+                          <div className="display-kr" style={{ fontSize: 15, marginTop: 3, lineHeight: 1.3 }}>{p.performance_title}</div>
+                          <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 4 }}>{p.venue_name}</div>
+                          {singer && (
+                            <div style={{ marginTop: 4 }}>
+                              <span className="display-kr" style={{ fontSize: 12 }}>{singer.person_name}</span>
+                              <span className="mono coral" style={{ fontSize: 9, marginLeft: 6 }}>{(singer.person_medium || '').toUpperCase()}</span>
+                            </div>
+                          )}
+                        </div>
                       </a>
                     );
                   })}
