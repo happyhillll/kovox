@@ -1718,10 +1718,15 @@ function DetailProgramme({ perfId }) {
           <div>
             <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● SINGER</div>
             {singers.map(s => (
-              <a key={s.person_id} href={'#/singer/' + s.person_id} style={{ display: 'block', textDecoration: 'none', color: 'inherit', marginBottom: 8 }}>
-                <span className="display-kr" style={{ fontSize: 32 }}>{s.person_name}</span>
-                <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 12 }}>{(s.person_medium || '').toUpperCase()}</span>
-              </a>
+              <div key={s.person_id} style={{ marginBottom: 16 }}>
+                <a href={'#/singer/' + s.person_id} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+                  <span className="display-kr" style={{ fontSize: 32 }}>{s.person_name}</span>
+                  <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 12 }}>{(s.person_medium || '').toUpperCase()}</span>
+                </a>
+                {s.person_profile && (
+                  <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.7, marginTop: 8, maxWidth: 600 }}>{s.person_profile}</p>
+                )}
+              </div>
             ))}
           </div>
         )}
