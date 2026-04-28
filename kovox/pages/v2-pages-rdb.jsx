@@ -2394,8 +2394,8 @@ function PerformancesList() {
                         <div style={{ position: 'relative', background: '#111', aspectRatio: '3/4', overflow: 'hidden', boxShadow: '2px 4px 12px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3)' }}>
                           {/* Tape strip */}
                           <div style={{ position: 'absolute', top: -6, left: tapeLeft + '%', transform: `rotate(${tapeRotate}deg)`, width: 48, height: 18, background: 'rgba(255,248,220,0.55)', zIndex: 2, backdropFilter: 'blur(1px)', borderRadius: 1 }} />
-                          <img src={'viewer/data/1024/' + perfIdNum + '.jpg'} alt={p.performance_title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                            onError={(e) => { e.target.style.display = 'none'; }} />
+                          <img src={'viewer/data/thumbnails/' + perfIdNum + '.gif'} alt={p.performance_title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            onError={(e) => { e.target.onerror = null; e.target.src = 'viewer/data/1024/' + perfIdNum + '.jpg'; }} />
                           {/* Subtle worn edge overlay */}
                           <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 20px rgba(0,0,0,0.3)', pointerEvents: 'none' }} />
                         </div>
