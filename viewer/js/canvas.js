@@ -531,9 +531,11 @@ function Canvas() {
     */
 
     var padding = rangeBandImage / 2;
-    var scale = 1 / (rangeBandImage / (width*0.8));
+    var detailPanelWidth = 800;
+    var scaleFactor = 0.65;
+    var scale = 1 / (rangeBandImage / (width * scaleFactor));
     var translateNow = [
-      -scale * (d.x - padding) - (width*0.8) / 2 + margin.left,
+      -scale * (d.x - padding) - (width * scaleFactor) / 2 + margin.left - detailPanelWidth / 2,
       -scale * (height + d.y + padding) - margin.top + height / 2,
     ];
 

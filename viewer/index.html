@@ -133,6 +133,9 @@ cpietsch@gmail.com
                 </span>
               </div>
             </div>
+            <div class="entry wide" style="padding: 0; margin-top: 24px;">
+              <img v-for="suffix in ['', '_03', '_04', '_05']" :key="suffix" :src="'data/detail_images/' + item._id + suffix + '.jpg'" @error="$event.target.style.display='none'" @load="$event.target.style.display='block'" style="display:none; width: 100%; height: auto; margin-bottom: 8px;" />
+            </div>
           </div>
         </div>
       </div>

@@ -4,11 +4,11 @@ const D = window.KOVOX_DATA;
 
 const NAV_LINKS = [
   { label: 'Archive', href: '#/archive' },
-  { label: 'Composers', href: '#/composers' },
+  { label: 'Performances', href: '#/performances' },
   { label: 'Singers', href: '#/singers' },
-  { label: 'Calendar', href: '#/calendar' },
-  { label: 'Editorial', href: '#/editorial' },
-  { label: 'Contribute', href: '#/contribute' },
+  { label: 'Composers', href: '#/composers' },
+  { label: 'Repertoire', href: '#/repertoire' },
+  { label: 'Network', href: '#/network' },
   { label: 'About', href: '#/about' }
 ];
 
@@ -20,7 +20,7 @@ const Nav2 = ({ active = '' }) => (
         <a key={x.label} href={x.href} style={{ color: active === x.label ? 'var(--coral)' : 'var(--ink-soft)', textDecoration: 'none' }}>{x.label}</a>
       ))}
     </nav>
-    <div className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)' }}>⌕ SEARCH</div>
+    <a href="#/search" className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'none', cursor: 'pointer' }}>⌕ SEARCH</a>
   </header>
 );
 
@@ -53,60 +53,13 @@ function VikusTimeView() {
 
 /* ================= ARCHIVE ================= */
 function Archive() {
-  const [v, setV] = useS('Time');
   return (
-    <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
+    <div className="kv2" style={{ width: '100%', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Nav2 active="Archive" />
-      <PageHeader kicker={'THE ARCHIVE / 2016 — 2025'} title="ARCHIVE" count={String(D.stats.totalRecitals)} sub="한국에서 열린 모든 독창회. 시간·성부·작곡가·달력으로 탐색하세요." />
-      <section style={{ padding: '0 56px 32px', borderBottom: '1px solid var(--rule)' }}>
-        <div style={{ display: 'flex', gap: 0 }}>
-          {['Time', 'Voice', 'Composer', 'List'].map(x => (
-            <button key={x} onClick={() => setV(x)} className="display" style={{ background: v === x ? 'var(--coral)' : 'transparent', color: v === x ? 'var(--bg-deep)' : 'var(--ink-soft)', border: 'none', borderRight: '1px solid var(--rule)', padding: '20px 32px', fontSize: 16, cursor: 'pointer', letterSpacing: '0.1em' }}>
-              {x.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section style={{ padding: '40px 56px' }}>
-        {v === 'Time' && <VikusTimeView />}
-        {v === 'Voice' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0 }}>
-            {D.voiceTypes.map((vt, i) => (
-              <div key={vt.id} style={{ padding: '32px', borderBottom: '1px solid var(--rule)', borderRight: i % 2 === 0 ? '1px solid var(--rule)' : 'none' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span className="display" style={{ fontSize: 48, letterSpacing: '-0.02em' }}>{vt.id.toUpperCase()}</span>
-                  <span className="display coral" style={{ fontSize: 64 }}>{vt.count}</span>
-                </div>
-                <div className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 8 }}>{vt.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        {v === 'Composer' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px 64px' }}>
-            {D.composers.map(c => (
-              <div key={c.name} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--rule)' }}>
-                <span className="display coral" style={{ fontSize: 28 }}>{c.name.toUpperCase()}</span>
-                <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{c.count} recitals</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {v === 'List' && (
-          <div>
-            {D.performances.slice(0, 50).map(p => (
-              <a key={p.id} href={'#/detail/' + p.id} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 200px 100px 60px', gap: 24, padding: '22px 0', borderTop: '1px solid var(--rule)', alignItems: 'baseline', textDecoration: 'none', color: 'inherit' }}>
-                <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.date}</span>
-                <span className="display-kr" style={{ fontSize: 24 }}>{p.title}</span>
-                <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.venue}</span>
-                <span className="mono coral" style={{ fontSize: 11, letterSpacing: '0.1em' }}>{p.voice.toUpperCase()}</span>
-                <span className="coral" style={{ fontSize: 22, textAlign: 'right' }}>→</span>
-              </a>
-            ))}
-          </div>
-        )}
-      </section>
+      <PageHeader kicker={'THE ARCHIVE / 2016 — 2025'} title="ARCHIVE" count={String(D.stats.totalRecitals)} sub="한국에서 열린 모든 클래식 음악 독창회. 연도, 작곡가, 곡 제목, 성악가 이름으로 탐색하세요." />
+      <div style={{ flex: 1, position: 'relative' }}>
+        <iframe src="viewer/" style={{ width: '100%', height: 'calc(100vh - 260px)', minHeight: 600, border: 'none', display: 'block' }} title="KoVox Timeline (live)" />
+      </div>
     </div>
   );
 }
@@ -119,12 +72,12 @@ function Composers() {
       <PageHeader kicker="INDEX I" title="COMPOSERS" count={String(D.stats.totalComposers)} sub="17세기 카치니에서 동시대 윤학준까지 — 한국 독창회 무대에 오른 모든 작곡가." />
       <section style={{ padding: '0 56px 80px' }}>
         {D.composers.map((c, i) => (
-          <div key={c.name} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 100px 60px', gap: 24, padding: '24px 0', borderTop: '1px solid var(--rule)', alignItems: 'center' }}>
+          <a key={c.name} href={'#/composer/' + encodeURIComponent(c.name)} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 100px 60px', gap: 24, padding: '24px 0', borderTop: '1px solid var(--rule)', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
             <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>№ {String(i + 1).padStart(3, '0')}</span>
             <span className="display coral" style={{ fontSize: 36, letterSpacing: '-0.02em' }}>{c.name.toUpperCase()}</span>
             <span className="display" style={{ fontSize: 28, textAlign: 'right' }}>{c.count}</span>
             <span className="coral" style={{ fontSize: 22, textAlign: 'right' }}>→</span>
-          </div>
+          </a>
         ))}
       </section>
     </div>
@@ -198,11 +151,17 @@ function Calendar() {
 /* ================= DETAIL ================= */
 function Detail({ perfId }) {
   const p = D.performances.find(x => String(x.id) === String(perfId)) || D.performances[0];
+  const rdb = window.KOVOX_RDB ? window.KOVOX_RDB.performances.find(x => x.performance_id === 'PERF_' + perfId) : null;
+  const startTime = (rdb && rdb.start_time) || p.time || '—';
+  const duration = (rdb && rdb.duration_minutes) ? rdb.duration_minutes + 'min' : '—';
+  const host = (rdb && rdb.host_organization) || null;
+  const sponsor = (rdb && rdb.sponsoring_organization) || null;
+
   return (
     <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
       <Nav2 />
       <div style={{ padding: '20px 56px', borderBottom: '1px solid var(--rule)' }}>
-        <a href="#/archive" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.15em', textDecoration: 'none' }}>← ARCHIVE / </a>
+        <a href="#/performances" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.15em', textDecoration: 'none' }}>← PERFORMANCES / </a>
         <span className="mono coral" style={{ fontSize: 11, letterSpacing: '0.15em' }}>№ {p.id}</span>
       </div>
       <section style={{ padding: '40px 56px', display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 64 }}>
@@ -215,31 +174,108 @@ function Detail({ perfId }) {
           <h1 className="display-kr" style={{ fontSize: 72, lineHeight: 0.95, letterSpacing: '-0.04em', margin: '20px 0 0' }}>
             {p.title}
           </h1>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 40, paddingTop: 24, borderTop: '1px solid var(--rule)' }}>
-            {[['DATE', p.date], ['TIME', p.time || '—'], ['VENUE', p.venue]].map(([k, v]) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 40, paddingTop: 24, borderTop: '1px solid var(--rule)' }}>
+            {[['DATE', p.date], ['START', startTime], ['DURATION', duration], ['VENUE', p.venue]].map(([k, v]) => (
               <div key={k}>
                 <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>{k}</div>
                 <div className="display" style={{ fontSize: 20, marginTop: 6 }}>{v}</div>
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 40 }}>
-            <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● SINGER</div>
-            <div className="display-kr" style={{ fontSize: 36 }}>{p.singer}</div>
-          </div>
+          {(host || sponsor) && (
+            <div style={{ display: 'grid', gridTemplateColumns: host && sponsor ? '1fr 1fr' : '1fr', gap: 16, marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--rule)' }}>
+              {host && (
+                <div>
+                  <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>HOST</div>
+                  <div style={{ fontSize: 15, marginTop: 6, lineHeight: 1.4 }}>{host}</div>
+                </div>
+              )}
+              {sponsor && (
+                <div>
+                  <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>SPONSOR</div>
+                  <div style={{ fontSize: 15, marginTop: 6, lineHeight: 1.4 }}>{sponsor}</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
-      {p.composers.length > 0 && (
-        <section style={{ padding: '40px 56px 80px' }}>
-          <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● PROGRAMME · {p.composers.length} COMPOSERS</div>
-          {p.composers.map((name, i) => (
-            <div key={i} style={{ padding: '16px 0', borderTop: '1px solid var(--rule)' }}>
-              <span className="display" style={{ fontSize: 28, letterSpacing: '-0.02em' }}>{name.toUpperCase()}</span>
-            </div>
-          ))}
-        </section>
-      )}
+      {window.KoVoxPagesRDB && window.KoVoxPagesRDB.DetailProgramme && React.createElement(window.KoVoxPagesRDB.DetailProgramme, { perfId: perfId })}
+      <SimilarPrograms perfId={perfId} />
+      {window.KoVoxPagesRDB && window.KoVoxPagesRDB.ReviewSection && React.createElement(window.KoVoxPagesRDB.ReviewSection, { perfId: perfId })}
     </div>
+  );
+}
+
+/* ================= SIMILAR PROGRAMS (work-based) ================= */
+function SimilarPrograms({ perfId }) {
+  const similar = React.useMemo(() => {
+    const RDB = window.KOVOX_RDB;
+    if (!RDB) return [];
+
+    const fullPerfId = 'PERF_' + perfId;
+    // Get work IDs for this performance
+    const myWorkIds = new Set();
+    RDB.programs.forEach(pr => {
+      if (pr.performance_id === fullPerfId && pr.work_id && pr.is_intermission !== 'TRUE') {
+        myWorkIds.add(pr.work_id);
+      }
+    });
+    if (myWorkIds.size === 0) return [];
+
+    // Build work sets per performance
+    const perfWorkSets = {};
+    RDB.programs.forEach(pr => {
+      if (!pr.work_id || pr.is_intermission === 'TRUE' || pr.performance_id === fullPerfId) return;
+      if (!perfWorkSets[pr.performance_id]) perfWorkSets[pr.performance_id] = new Set();
+      perfWorkSets[pr.performance_id].add(pr.work_id);
+    });
+
+    // Jaccard similarity based on works
+    const results = [];
+    Object.entries(perfWorkSets).forEach(([pid, workSet]) => {
+      const shared = [...myWorkIds].filter(wid => workSet.has(wid));
+      if (shared.length < 1) return;
+      const union = new Set([...myWorkIds, ...workSet]);
+      const perf = RDB.performances.find(p => p.performance_id === pid);
+      if (!perf) return;
+
+      // Get shared work titles
+      const sharedTitles = shared.map(wid => {
+        const w = RDB.works.find(x => x.work_id === wid);
+        return w ? (w.mb_title || w.title_variant || '') : '';
+      }).filter(Boolean);
+
+      results.push({ perf, sharedCount: shared.length, score: shared.length / union.size, sharedTitles });
+    });
+
+    return results.sort((a, b) => b.score - a.score || b.sharedCount - a.sharedCount).slice(0, 10);
+  }, [perfId]);
+
+  if (similar.length === 0) return null;
+
+  return (
+    <section style={{ padding: '40px 56px 80px', borderTop: '1px solid var(--rule)' }}>
+      <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● SIMILAR PROGRAMMES</div>
+      <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginBottom: 20 }}>같은 곡이 포함된 다른 독창회</div>
+      {similar.map(({ perf: s, sharedCount, sharedTitles }) => {
+        const idNum = s.performance_id.replace('PERF_', '');
+        return (
+          <a key={s.performance_id} href={'#/detail/' + idNum} style={{ display: 'block', padding: '18px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 200px 40px', gap: 24, alignItems: 'baseline' }}>
+              <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{s.performance_date}</span>
+              <span className="display-kr" style={{ fontSize: 20 }}>{s.performance_title}</span>
+              <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{s.venue_name}</span>
+              <span className="coral" style={{ fontSize: 18, textAlign: 'right' }}>→</span>
+            </div>
+            <div style={{ marginTop: 6, paddingLeft: 120 }}>
+              <span className="mono coral" style={{ fontSize: 10, letterSpacing: '0.1em' }}>{sharedCount} shared: </span>
+              <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)' }}>{sharedTitles.join(' · ')}</span>
+            </div>
+          </a>
+        );
+      })}
+    </section>
   );
 }
 

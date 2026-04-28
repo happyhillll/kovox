@@ -2,6 +2,29 @@
 const { useState: useSL, useEffect: useEL } = React;
 const D_L = window.KOVOX_DATA;
 
+/* ============== COUNTER ANIMATION ============== */
+function AnimatedNumber({ value, duration = 1800 }) {
+  const num = parseInt(value) || 0;
+  const suffix = String(value).replace(/^\d+/, '');
+  const [display, setDisplay] = useSL(0);
+  const [done, setDone] = useSL(false);
+  useEL(() => {
+    if (num === 0) return;
+    const start = performance.now();
+    let raf;
+    const step = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(eased * num));
+      if (progress < 1) { raf = requestAnimationFrame(step); }
+      else { setDone(true); }
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [num, duration]);
+  return React.createElement('span', null, (done ? num : display) + suffix);
+}
+
 /* ============== KINETIC HERO ============== */
 function KineticHero() {
   const [step, setStep] = useSL(0);
@@ -51,11 +74,11 @@ function KineticHero() {
 
 const NAV_ITEMS = [
   { label: 'Archive', href: '#/archive' },
-  { label: 'Composers', href: '#/composers' },
+  { label: 'Performances', href: '#/performances' },
   { label: 'Singers', href: '#/singers' },
-  { label: 'Calendar', href: '#/calendar' },
-  { label: 'Editorial', href: '#/editorial' },
-  { label: 'Contribute', href: '#/contribute' },
+  { label: 'Composers', href: '#/composers' },
+  { label: 'Repertoire', href: '#/repertoire' },
+  { label: 'Network', href: '#/network' },
   { label: 'About', href: '#/about' }
 ];
 
@@ -65,7 +88,7 @@ const NavL = () => (
     <nav style={{ display: 'flex', gap: 32, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
       {NAV_ITEMS.map(x => <a key={x.label} href={x.href} style={{ color: 'var(--ink-soft)', textDecoration: 'none' }}>{x.label}</a>)}
     </nav>
-    <div className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)' }}>⌕ SEARCH</div>
+    <a href="#/search" className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'none', cursor: 'pointer' }}>⌕ SEARCH</a>
   </header>
 );
 
@@ -78,7 +101,7 @@ function Landing() {
       <section style={{ padding: '0 56px 80px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderTop: '1px solid var(--rule)' }}>
         {[[String(S.totalRecitals), 'RECITALS'], [String(S.totalSingers), 'SINGERS'], [String(S.totalComposers), 'COMPOSERS'], [S.yearSpan, 'SPAN']].map(([n, l], i) => (
           <div key={l} style={{ padding: '40px 24px', borderRight: i < 3 ? '1px solid var(--rule)' : 'none' }}>
-            <div className="display coral" style={{ fontSize: 88, lineHeight: 0.9 }}>{n}</div>
+            <div className="display coral" style={{ fontSize: 88, lineHeight: 0.9 }}><AnimatedNumber value={n} duration={1800} /></div>
             <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 12, letterSpacing: '0.2em' }}>{l}</div>
           </div>
         ))}
