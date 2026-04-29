@@ -415,12 +415,11 @@ function About() {
         </div>
       </section>
 
-      {/* Quote block */}
-      <section style={{ padding: '80px 56px', borderTop: '1px solid var(--rule)', textAlign: 'center' }}>
-        <blockquote style={{ fontSize: 28, lineHeight: 1.6, color: 'var(--ink)', maxWidth: 900, marginInline: 'auto', fontStyle: 'italic' }}>
-          "음악은 그냥 뚝딱 생겨난 것이 아니다. 우리가 만드는 것이고 우리가 이해하는 것이다. 사람들은 음악을 통해 사고하고, 자신이 어떤 존재인지 결정하며, 스스로를 표현한다."
-        </blockquote>
-        <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 20, letterSpacing: '0.15em' }}>NICHOLAS COOK, MUSIC: A VERY SHORT INTRODUCTION</div>
+      {/* Declaration */}
+      <section style={{ padding: '100px 56px', borderTop: '1px solid var(--rule)', textAlign: 'center' }}>
+        <div className="display-kr" style={{ fontSize: 48, lineHeight: 1.3, color: 'var(--ink)', maxWidth: 900, marginInline: 'auto' }}>
+          한 번의 무대는 사라져도,<br /><span className="coral">그 기록은 남습니다.</span>
+        </div>
       </section>
 
       {/* Credits */}
