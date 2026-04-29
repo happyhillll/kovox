@@ -1,4 +1,4 @@
-/* global React, KOVOX_DATA */
+/* global React, KOVOX_DATA, d3 */
 const { useState: useSL, useEffect: useEL } = React;
 const D_L = window.KOVOX_DATA;
 
@@ -92,44 +92,130 @@ const NavL = () => (
 );
 
 function Landing() {
-  const S = D_L.stats;
+  const RDB = window.KOVOX_RDB;
+  const rdbStats = RDB ? {
+    totalPerfs: RDB.performances.length,
+    totalSingers: RDB.persons.filter(p => p.person_role === 'main performer').length,
+    totalAccompanists: RDB.persons.filter(p => p.person_role === 'accompanist').length,
+    totalWorks: RDB.works.length,
+    totalComposers: new Set(RDB.works.map(w => w.mb_composer).filter(Boolean)).size,
+    totalVenues: new Set(RDB.performances.map(p => p.venue_name).filter(Boolean)).size
+  } : null;
+  const S = rdbStats || D_L.stats;
+  const yearChartRef = React.useRef(null);
+
+  // Year distribution for mini chart
+  useEL(() => {
+    if (!yearChartRef.current || !RDB) return;
+    const svg = d3.select(yearChartRef.current);
+    svg.selectAll('*').remove();
+    const yearCount = {};
+    RDB.performances.forEach(p => {
+      if (p.performance_date) {
+        const y = p.performance_date.slice(0, 4);
+        yearCount[y] = (yearCount[y] || 0) + 1;
+      }
+    });
+    const years = Object.keys(yearCount).sort();
+    const w = yearChartRef.current.clientWidth, h = 160;
+    const m = { top: 10, right: 10, bottom: 24, left: 10 };
+    const iw = w - m.left - m.right, ih = h - m.top - m.bottom;
+    const g = svg.append('g').attr('transform', `translate(${m.left},${m.top})`);
+    const x = d3.scaleBand().domain(years).range([0, iw]).padding(0.25);
+    const y = d3.scaleLinear().domain([0, d3.max(years, yr => yearCount[yr])]).nice().range([ih, 0]);
+    g.append('g').attr('transform', `translate(0,${ih})`).call(d3.axisBottom(x).tickSize(0)).selectAll('text').style('fill', '#888').style('font-size', '10px');
+    g.selectAll('.domain').style('stroke', '#444');
+    g.selectAll('rect').data(years).enter().append('rect')
+      .attr('x', yr => x(yr)).attr('y', yr => y(yearCount[yr])).attr('width', x.bandwidth()).attr('height', yr => ih - y(yearCount[yr]))
+      .attr('fill', '#f57b6b').attr('rx', 2);
+    g.selectAll('.label').data(years).enter().append('text')
+      .attr('x', yr => x(yr) + x.bandwidth() / 2).attr('y', yr => y(yearCount[yr]) - 4)
+      .attr('text-anchor', 'middle').style('fill', '#f4ede2').style('font-size', '9px').style('font-family', 'JetBrains Mono')
+      .text(yr => yearCount[yr]);
+  }, []);
+
+  // Random posters for showcase
+  const showcasePerfs = React.useMemo(() => {
+    if (!RDB) return [];
+    const shuffled = [...RDB.performances].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 8);
+  }, []);
+
   return (
     <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
       <NavL />
       <section style={{ padding: '40px 0 0' }}><KineticHero /></section>
-      <section style={{ padding: '0 56px 80px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderTop: '1px solid var(--rule)' }}>
-        {[[String(S.totalRecitals), 'RECITALS'], [String(S.totalSingers), 'SINGERS'], [String(S.totalComposers), 'COMPOSERS'], [S.yearSpan, 'SPAN']].map(([n, l], i) => (
-          <div key={l} style={{ padding: '40px 24px', borderRight: i < 3 ? '1px solid var(--rule)' : 'none' }}>
-            <div className="display coral" style={{ fontSize: 88, lineHeight: 0.9 }}><AnimatedNumber value={n} duration={1800} /></div>
-            <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 12, letterSpacing: '0.2em' }}>{l}</div>
+
+      {/* Stats */}
+      <section style={{ padding: '0 56px 0', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderTop: '1px solid var(--rule)' }}>
+        {[
+          [String(S.totalPerfs || S.totalRecitals), 'RECITALS'],
+          [String(S.totalSingers), 'SINGERS'],
+          [String(S.totalAccompanists || '—'), 'ACCOMPANISTS'],
+          [String(S.totalWorks || '—'), 'WORKS'],
+          [String(S.totalComposers), 'COMPOSERS'],
+          [String(S.totalVenues || '—'), 'VENUES']
+        ].map(([n, l], i) => (
+          <div key={l} style={{ padding: '32px 16px', borderRight: i < 5 ? '1px solid var(--rule)' : 'none' }}>
+            <div className="display coral" style={{ fontSize: 56, lineHeight: 0.9 }}><AnimatedNumber value={n} duration={1800} /></div>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', marginTop: 10, letterSpacing: '0.2em' }}>{l}</div>
           </div>
         ))}
       </section>
-      <section style={{ padding: '80px 56px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 40 }}>
-          <h3 className="display" style={{ fontSize: 56, margin: 0 }}>COMPOSERS <span className="coral">{S.totalComposers}</span></h3>
-          <a href="#/composers" className="mono coral" style={{ fontSize: 13, letterSpacing: '0.1em', textDecoration: 'none' }}>VIEW ALL →</a>
+
+      {/* Year distribution chart */}
+      <section style={{ padding: '40px 56px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
+          <div className="mono coral" style={{ fontSize: 11, letterSpacing: '0.2em' }}>● PERFORMANCES BY YEAR</div>
+          <a href="#/performances" className="mono coral" style={{ fontSize: 11, letterSpacing: '0.1em', textDecoration: 'none' }}>VIEW ALL →</a>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px 64px' }}>
-          {D_L.composers.slice(0, 12).map(c => (
-            <div key={c.name} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--rule)' }}>
-              <span className="display coral" style={{ fontSize: 32 }}>{c.name.toUpperCase()}</span>
-              <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{c.count} recitals</span>
-            </div>
-          ))}
+        <svg ref={yearChartRef} style={{ width: '100%', height: 160 }} />
+      </section>
+
+      {/* Poster showcase */}
+      <section style={{ padding: '48px 56px 60px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 24 }}>
+          <div className="mono coral" style={{ fontSize: 11, letterSpacing: '0.2em' }}>● FROM THE ARCHIVE</div>
+          <a href="#/performances" className="mono coral" style={{ fontSize: 11, letterSpacing: '0.1em', textDecoration: 'none' }}>EXPLORE →</a>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+          {showcasePerfs.slice(0, 4).map(p => {
+            const id = p.performance_id.replace('PERF_', '');
+            return (
+              <a key={p.performance_id} href={'#/detail/' + id} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div style={{ position: 'relative', background: '#111', aspectRatio: '3/4', overflow: 'hidden', boxShadow: '2px 4px 16px rgba(0,0,0,0.4)' }}>
+                  <img src={'viewer/data/thumbnails/' + id + '.gif'} alt={p.performance_title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'viewer/data/1024/' + id + '.jpg'; }} />
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)' }}>{p.performance_date}</div>
+                  <div className="display-kr" style={{ fontSize: 16, marginTop: 2, lineHeight: 1.3 }}>{p.performance_title}</div>
+                </div>
+              </a>
+            );
+          })}
         </div>
       </section>
-      <section style={{ padding: '60px 56px', background: 'var(--bg-deep)' }}>
-        <h3 className="display" style={{ fontSize: 56, margin: '0 0 40px' }}>RECENT <span className="coral">RECITALS</span></h3>
-        {D_L.performances.slice(0, 10).map(p => (
-          <a key={p.id} href={'#/detail/' + p.id} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 200px 100px 60px', gap: 24, padding: '22px 0', borderTop: '1px solid var(--rule)', alignItems: 'baseline', textDecoration: 'none', color: 'inherit' }}>
-            <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.date}</span>
-            <span className="display-kr" style={{ fontSize: 24 }}>{p.title}</span>
-            <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.venue}</span>
-            <span className="mono coral" style={{ fontSize: 11, letterSpacing: '0.1em' }}>{p.voice.toUpperCase()}</span>
-            <span className="coral" style={{ fontSize: 22, textAlign: 'right' }}>→</span>
-          </a>
-        ))}
+
+      {/* Top singers */}
+      <section style={{ padding: '48px 56px', background: 'var(--bg-deep)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 24 }}>
+          <h3 className="display" style={{ fontSize: 48, margin: 0 }}>TOP <span className="coral">SINGERS</span></h3>
+          <a href="#/singers" className="mono coral" style={{ fontSize: 11, letterSpacing: '0.1em', textDecoration: 'none' }}>VIEW ALL →</a>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px 48px' }}>
+          {(RDB ? RDB.persons.filter(p => p.person_role === 'main performer').slice(0, 10) : D_L.performances.slice(0, 10)).map((item, i) => {
+            const name = item.person_name || item.singer || '';
+            const medium = item.person_medium || item.voice || '';
+            const href = item.person_id ? '#/singer/' + item.person_id : '#/singers';
+            return (
+              <a key={i} href={href} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
+                <span className="display-kr" style={{ fontSize: 28 }}>{name}</span>
+                <span className="mono coral" style={{ fontSize: 11, letterSpacing: '0.1em' }}>{medium.toUpperCase()}</span>
+              </a>
+            );
+          })}
+        </div>
       </section>
       <section style={{ padding: '120px 56px', textAlign: 'center', borderTop: '1px solid var(--rule)' }}>
         <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.3em', marginBottom: 24 }}>CONTRIBUTE</div>
