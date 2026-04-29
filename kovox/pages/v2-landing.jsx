@@ -73,12 +73,11 @@ function KineticHero() {
 }
 
 const NAV_ITEMS = [
-  { label: 'Archive', href: '#/archive' },
   { label: 'Performances', href: '#/performances' },
   { label: 'Singers', href: '#/singers' },
-  { label: 'Composers', href: '#/composers' },
-  { label: 'Repertoire', href: '#/repertoire' },
+  { label: 'Works', href: '#/repertoire' },
   { label: 'Network', href: '#/network' },
+  { label: 'Archive', href: '#/archive' },
   { label: 'About', href: '#/about' }
 ];
 
