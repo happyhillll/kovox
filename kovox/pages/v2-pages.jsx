@@ -422,9 +422,49 @@ function About() {
         </div>
       </section>
 
+      {/* Curator */}
+      <section style={{ padding: '60px 56px', display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 80, borderTop: '1px solid var(--rule)' }}>
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.2em' }}>● CURATOR</div>
+        <div>
+          <div className="display" style={{ fontSize: 40, letterSpacing: '-0.02em' }}>Minji Kim</div>
+          <div style={{ marginTop: 12, fontSize: 15, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
+            <a href="https://www.metahumanities.org/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--coral)', textDecoration: 'none' }}>Meta-Humanities Lab</a>, Seoul National University
+          </div>
+          <div style={{ marginTop: 16, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            <a href="mailto:happyhill@snu.ac.kr" className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'none' }}>happyhill@snu.ac.kr</a>
+            <span className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)' }}>010-9505-0337</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Publications */}
+      <section style={{ padding: '40px 56px', display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 80, borderTop: '1px solid var(--rule)' }}>
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.2em' }}>● PUBLICATIONS</div>
+        <div>
+          <div style={{ padding: '16px 0', borderBottom: '1px solid var(--rule)' }}>
+            <div style={{ fontSize: 16, lineHeight: 1.5, color: 'var(--ink)' }}>KoVox Dataset — A Relational Database of Korean Classical Vocal Performance Ephemera</div>
+            <div className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 6 }}>Kim, M., & Lee, E. (2026)</div>
+            <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}><span style={{ fontStyle: 'italic' }}>Journal of Open Humanities Data</span>, 12: 60, pp. 1–7</div>
+            <a href="https://doi.org/10.5334/johd.417" target="_blank" rel="noopener noreferrer" className="mono coral" style={{ fontSize: 11, textDecoration: 'none', marginTop: 6, display: 'inline-block' }}>DOI: 10.5334/johd.417 ↗</a>
+          </div>
+          <div style={{ padding: '16px 0', borderBottom: '1px solid var(--rule)' }}>
+            <div style={{ fontSize: 16, lineHeight: 1.5, color: 'var(--ink)' }}>디지털 공연예술 에페메라의 정보 품질 진단: KOPIS의 사례를 중심으로</div>
+            <div className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 6 }}>김민지, 이은수 (2025)</div>
+            <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}><span style={{ fontStyle: 'italic' }}>문화예술융합연구</span>, 6(3), 5–23</div>
+            <a href="https://doi.org/10.47415/IRAC.5.1.1" target="_blank" rel="noopener noreferrer" className="mono coral" style={{ fontSize: 11, textDecoration: 'none', marginTop: 6, display: 'inline-block' }}>DOI: 10.47415/IRAC.5.1.1 ↗</a>
+          </div>
+          <div style={{ padding: '16px 0', borderBottom: '1px solid var(--rule)' }}>
+            <div style={{ fontSize: 16, lineHeight: 1.5, color: 'var(--ink)' }}>사라지는 기록, 에페메라 아카이브를 위한 패싯 기반 메타데이터 스키마 설계: 클래식 음악 공연 기록을 시작으로</div>
+            <div className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 6 }}>강윤아, 김민지, 이은수, 오효정 (2025)</div>
+            <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}><span style={{ fontStyle: 'italic' }}>정보관리학회지</span>, 42(4), 99–124</div>
+            <a href="https://doi.org/10.3743/KOSIM.2025.42.4.099" target="_blank" rel="noopener noreferrer" className="mono coral" style={{ fontSize: 11, textDecoration: 'none', marginTop: 6, display: 'inline-block' }}>DOI: 10.3743/KOSIM.2025.42.4.099 ↗</a>
+          </div>
+        </div>
+      </section>
+
       {/* Credits */}
-      <section style={{ padding: '40px 56px 80px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 40, borderTop: '1px solid var(--rule)' }}>
-        {[['CURATOR', 'Minji Kim', 'Seoul National University'], ['DESIGN', 'Happy Hill', '2024 — Present'], ['ENGINE', 'KoVox / VIKUS', 'Pietsch, 2018']].map(([k, v, sub]) => (
+      <section style={{ padding: '40px 56px 80px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 40, borderTop: '1px solid var(--rule)' }}>
+        {[['DESIGN', 'Happy Hill', '2024 — Present'], ['ENGINE', 'KoVox / VIKUS Viewer', 'Pietsch, 2018']].map(([k, v, sub]) => (
           <div key={k}>
             <div className="mono coral" style={{ fontSize: 11, letterSpacing: '0.2em', marginBottom: 12 }}>● {k}</div>
             <div className="display" style={{ fontSize: 32, letterSpacing: '-0.02em' }}>{v}</div>
