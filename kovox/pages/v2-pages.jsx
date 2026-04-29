@@ -370,59 +370,48 @@ function About() {
     <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
       <Nav2 active="About" />
 
-      {/* Hero quote */}
+      {/* Hero */}
       <section style={{ padding: '120px 56px 60px', textAlign: 'center' }}>
         <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.3em', marginBottom: 32 }}>● COLOPHON · 2026</div>
         <h1 className="display-kr" style={{ fontSize: 96, lineHeight: 0.95, margin: 0, maxWidth: 1200, marginInline: 'auto', letterSpacing: '-0.04em' }}>
-          음악 작품은<br />역사적 과정의 <span className="coral">흔적</span>에 불과하다.
+          국내 클래식 독창 공연의<br /><span className="coral">모든 것</span>
         </h1>
-        <p style={{ fontSize: 18, color: 'var(--ink-soft)', marginTop: 32, maxWidth: 700, marginInline: 'auto', lineHeight: 1.6 }}>
-          음악을 연구한다는 건 음악에 참여하는 것을 연구하는 일, 우리 자신을 연구하는 일이다.
-        </p>
       </section>
 
-      {/* Why this archive */}
+      {/* Why */}
       <section style={{ padding: '60px 56px', display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 80, borderTop: '1px solid var(--rule)' }}>
         <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.2em' }}>● WHY</div>
         <div style={{ fontSize: 20, lineHeight: 1.8, color: 'var(--ink-soft)' }}>
-          <p style={{ marginTop: 0 }}>음악에 관한 아카이브 연구는 많지만, <strong style={{ color: 'var(--ink)' }}>공연 자체에 대한 아카이브는 거의 없습니다.</strong> 악보는 연주자가 어떤 속도로, 어떤 음색으로, 어떤 기교를 택했는지 말해주지 않습니다. 우리는 20세기 초에 음악이 어떠했는지도 모르는데, 과거의 음악을 어떻게 온전히 이해할 수 있겠습니까?</p>
-          <p>KoVox는 한국에서 열린 모든 클래식 독창회의 프로그램, 연주자, 장소, 그리고 그 무대를 둘러싼 에페메라(ephemera)를 수집합니다. 포스터 한 장, 프로그램 노트 한 페이지 — 이것들이 모여 <strong style={{ color: 'var(--ink)' }}>기보가 말하지 못하는 것</strong>을 기록합니다.</p>
+          <p style={{ marginTop: 0 }}>악보에는 작곡가의 의도가 담겨 있지만, 연주자의 숨결까지 담기지는 않습니다. 어떤 음색으로, 어떤 호흡으로 무대에 섰는지는 <strong style={{ color: 'var(--ink)' }}>공연 그 자체</strong>만이 알고 있습니다.</p>
+          <p>하지만 공연은 한 번 끝나면 사라집니다. 남는 것은 포스터, 프로그램 노트, 브로슈어 — 이른바 <strong style={{ color: 'var(--ink)' }}>에페메라(ephemera)</strong>라 불리는 일회성 인쇄물뿐입니다. KoVox는 이 에페메라와 공연 기록을 한데 모아, 사라져가는 무대의 흔적을 보존합니다.</p>
         </div>
       </section>
 
-      {/* The problem */}
+      {/* Ephemera */}
       <section style={{ padding: '60px 56px', display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 80, borderTop: '1px solid var(--rule)' }}>
-        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.2em' }}>● THE PROBLEM</div>
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.2em' }}>● EPHEMERA</div>
         <div style={{ fontSize: 20, lineHeight: 1.8, color: 'var(--ink-soft)' }}>
-          <p style={{ marginTop: 0 }}>클래식 음악의 진짜 위기는 음악 자체가 아니라 <strong style={{ color: 'var(--ink)' }}>음악에 관한 사고방식</strong>에 있습니다. 학교와 대학의 음악관은 오늘날이 아니라 19세기 유럽의 입장을 반영합니다. 그 결과 음악과 음악에 관한 사고방식 사이에 불신의 벽이 생겼습니다.</p>
-          <p>우리는 음악을 시간 속에서 경험하지만, 이해하기 위해서는 시간에서 들어내 상상의 대상으로 바꿉니다. 음악 작품이라는 대상에 집착하면서 정작 그 사이에 있는 것 — 연주자의 해석, 청중의 경험, 공연이라는 일회적 사건 — 을 놓치고 있습니다.</p>
+          <p style={{ marginTop: 0 }}>에페메라는 원래 "하루만 지속되는 것"이라는 뜻의 그리스어에서 왔습니다. 공연 포스터, 티켓, 팸플릿처럼 <strong style={{ color: 'var(--ink)' }}>보존을 목적으로 만들어지지 않은 기록물</strong>을 말합니다.</p>
+          <p>그러나 시간이 지나면 이 작은 종이 한 장이 그 시대의 음악 문화를 가장 생생하게 전해주는 자료가 됩니다. 누가 어떤 곡을 골랐는지, 누구와 함께 무대에 섰는지, 어떤 공간에서 어떤 청중을 만났는지 — <strong style={{ color: 'var(--ink)' }}>에페메라는 악보가 말하지 못하는 이야기</strong>를 담고 있습니다.</p>
         </div>
       </section>
 
-      {/* The performer */}
+      {/* What we do */}
       <section style={{ padding: '60px 56px', display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 80, borderTop: '1px solid var(--rule)' }}>
-        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.2em' }}>● THE PERFORMER</div>
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.2em' }}>● WHAT WE DO</div>
         <div style={{ fontSize: 20, lineHeight: 1.8, color: 'var(--ink-soft)' }}>
-          <p style={{ marginTop: 0 }}>작곡가가 만들어놓은 것을 재연하는 일이 연주자의 역할이라는 생각은 음악 문화에 <strong style={{ color: 'var(--ink)' }}>권위주의적 권력 구조</strong>를 만들었습니다. 작곡가 위에 연주자, 연주자 위에 청중 — 이 계층 구조의 맨 아래에 놓인 청자는 "집중력 있게, 존경심을 갖고, 적절한 지식을 갖추어야" 한다고 배웁니다.</p>
-          <p>그러나 음악의 의미는 작품이 재현하는 것보다 <strong style={{ color: 'var(--ink)' }}>행하는 바</strong>에 더 많이 달려 있습니다. 베토벤이 우리에게 준 것은 새로운 들을 거리가 아니라, 그것을 듣는 새로운 방법입니다. KoVox는 이 "행해진 바" — 연주라는 사건 — 을 기록합니다.</p>
+          <p style={{ marginTop: 0 }}>KoVox는 2016년부터 현재까지 한국에서 열린 <strong style={{ color: 'var(--ink)' }}>클래식 독창회 1,300여 건</strong>의 공연 정보, 프로그램, 출연진, 에페메라를 수집하고 있습니다.</p>
+          <p>단순한 목록을 넘어, 성악가와 반주자의 관계, 레퍼토리의 흐름, 작곡가별 연주 경향까지 — 흩어져 있던 기록들을 연결하여 <strong style={{ color: 'var(--ink)' }}>한국 독창회 문화의 전체 그림</strong>을 그립니다.</p>
         </div>
       </section>
 
-      {/* The audience */}
+      {/* For whom */}
       <section style={{ padding: '60px 56px', display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 80, borderTop: '1px solid var(--rule)' }}>
-        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.2em' }}>● THE AUDIENCE</div>
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.2em' }}>● FOR WHOM</div>
         <div style={{ fontSize: 20, lineHeight: 1.8, color: 'var(--ink-soft)' }}>
-          <p style={{ marginTop: 0 }}>예술의 가치는 관객의 경험에 있습니다. 관객은 더 이상 소외된 존재가 아니라 <strong style={{ color: 'var(--ink)' }}>꼭 필요한 참여자</strong>입니다. 음악은 그저 듣기 좋은 소리가 아니라 인간의 문화에 깊숙이 뿌리 내리고 있습니다.</p>
-          <p>사람들은 음악을 통해 사고하고, 자신이 어떤 존재인지 결정하며, 스스로를 표현합니다. KoVox의 공연 후기, 프로그램 검색, 유사 프로그램 비교는 이러한 <strong style={{ color: 'var(--ink)' }}>참여의 도구</strong>입니다. 우리가 무엇을 어떻게 들어야 하는지 미리 판단하지 않고, 음악을 활용하고 내면화하고 좋아하는 방식에서 출발합니다.</p>
-        </div>
-      </section>
-
-      {/* Mission */}
-      <section style={{ padding: '60px 56px', display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 80, borderTop: '1px solid var(--rule)' }}>
-        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.2em' }}>● MISSION</div>
-        <div style={{ fontSize: 20, lineHeight: 1.8, color: 'var(--ink-soft)' }}>
-          <p style={{ marginTop: 0 }}>클래식 음악의 문화 자본은 산발적으로 산재되어 있으며, 한눈에 알아보기 어렵습니다. KoVox는 이 흩어진 기록들을 <strong style={{ color: 'var(--ink)' }}>하나의 살아있는 아카이브</strong>로 모읍니다.</p>
-          <p>이 사이트는 큐레이팅된 출판물이자, 누구나 기여할 수 있는 열린 데이터베이스입니다. 연주자의 포트폴리오가 되고, 반주자의 커리어 기록이 되며, 팬의 탐색 도구가 되고, 연구자의 데이터 소스가 됩니다.</p>
+          <p style={{ marginTop: 0 }}>이 아카이브는 모두를 위한 것입니다. <strong style={{ color: 'var(--ink)' }}>성악가</strong>에게는 프로그램을 설계할 때 참고할 수 있는 레퍼토리 데이터베이스가 되고, <strong style={{ color: 'var(--ink)' }}>반주자</strong>에게는 자신의 커리어를 한눈에 볼 수 있는 포트폴리오가 됩니다.</p>
+          <p><strong style={{ color: 'var(--ink)' }}>클래식 음악 팬</strong>에게는 좋아하는 성악가의 공연 이력을 탐색하는 즐거움을, <strong style={{ color: 'var(--ink)' }}>연구자</strong>에게는 한국 독창회 문화를 분석할 수 있는 구조화된 데이터를 제공합니다.</p>
+          <p>누구든 공연 정보를 등록할 수 있습니다. KoVox는 큐레이팅된 출판물이자, <strong style={{ color: 'var(--ink)' }}>누구나 기여할 수 있는 열린 아카이브</strong>입니다.</p>
         </div>
       </section>
 
