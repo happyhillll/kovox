@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const Landing = window.KoVoxLanding;
 const { Archive, Composers, Calendar, Detail, Contribute, Editorial, About } = window.KoVoxPages;
-const { SingersRDB, SingerProfile, Repertoire, WorkDetail, Network, SearchPage, PerformancesList, ComposerDetail } = window.KoVoxPagesRDB;
+const { SingersRDB, SingerProfile, Repertoire, WorkDetail, Network, SearchPage, PerformancesList, ComposerDetail, ContributeRDB } = window.KoVoxPagesRDB;
 
 function App() {
   const [route, setRoute] = useState(window.location.hash || '#/');
@@ -23,7 +23,7 @@ function App() {
   if (route === '#/singers') return <SingersRDB />;
   if (route === '#/calendar') return <Calendar />;
   if (route === '#/editorial') return <Editorial />;
-  if (route === '#/contribute') return <Contribute />;
+  if (route === '#/contribute') return <ContributeRDB />;
   if (route === '#/about') return <About />;
   if (route === '#/repertoire') return <Repertoire />;
   if (route === '#/network') return <Network />;

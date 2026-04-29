@@ -149,13 +149,29 @@ function Calendar() {
 }
 
 /* ================= DETAIL ================= */
+function getYoutubeId(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([^?&]+)/);
+  return m ? m[1] : null;
+}
+
 function Detail({ perfId }) {
   const p = D.performances.find(x => String(x.id) === String(perfId)) || D.performances[0];
   const rdb = window.KOVOX_RDB ? window.KOVOX_RDB.performances.find(x => x.performance_id === 'PERF_' + perfId) : null;
+  // Check localStorage for user-submitted data
+  const userPerf = React.useMemo(() => {
+    try {
+      const subs = JSON.parse(localStorage.getItem('kovox_submissions') || '[]');
+      return subs.find(s => String(s.id) === String(perfId));
+    } catch { return null; }
+  }, [perfId]);
   const startTime = (rdb && rdb.start_time) || p.time || '—';
   const duration = (rdb && rdb.duration_minutes) ? rdb.duration_minutes + 'min' : '—';
-  const host = (rdb && rdb.host_organization) || null;
-  const sponsor = (rdb && rdb.sponsoring_organization) || null;
+  const host = (rdb && rdb.host_organization) || (userPerf && userPerf.host) || null;
+  const sponsor = (rdb && rdb.sponsoring_organization) || (userPerf && userPerf.sponsor) || null;
+  const youtubeUrl = (userPerf && userPerf.youtube) || null;
+  const youtubeId = getYoutubeId(youtubeUrl);
+  const brochures = (userPerf && userPerf.brochures) || [];
 
   return (
     <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
@@ -200,6 +216,24 @@ function Detail({ perfId }) {
           )}
         </div>
       </section>
+      {youtubeId && (
+        <section style={{ padding: '0 56px 40px' }}>
+          <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● VIDEO</div>
+          <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', background: '#000' }}>
+            <iframe src={'https://www.youtube.com/embed/' + youtubeId} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+          </div>
+        </section>
+      )}
+      {brochures.length > 0 && (
+        <section style={{ padding: '0 56px 40px' }}>
+          <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● BROCHURE</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+            {brochures.map((src, i) => (
+              <img key={i} src={src} alt={'Brochure ' + (i + 1)} style={{ width: '100%', height: 'auto', display: 'block', border: '1px solid var(--rule)' }} />
+            ))}
+          </div>
+        </section>
+      )}
       {window.KoVoxPagesRDB && window.KoVoxPagesRDB.DetailProgramme && React.createElement(window.KoVoxPagesRDB.DetailProgramme, { perfId: perfId })}
       <SimilarPrograms perfId={perfId} />
       {window.KoVoxPagesRDB && window.KoVoxPagesRDB.ReviewSection && React.createElement(window.KoVoxPagesRDB.ReviewSection, { perfId: perfId })}

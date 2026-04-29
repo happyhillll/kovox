@@ -2423,6 +2423,420 @@ function PerformancesList() {
   );
 }
 
+/* ================= CONTRIBUTE PAGE (RDB-powered) ================= */
+function ContributeRDB() {
+  const [form, setForm] = useStateR({
+    title: '', date: '', startTime: '', durationMinutes: '', venue: '',
+    host: '', sponsor: '', youtube: '',
+    singerName: '', singerMedium: 'soprano', singerProfile: '',
+    accName: '', accMedium: 'piano', accProfile: ''
+  });
+  const [programItems, setProgramItems] = useStateR([]);
+  const [posterData, setPosterData] = useStateR(null);
+  const [brochures, setBrochures] = useStateR([]);
+  const [submitted, setSubmitted] = useStateR(false);
+
+  // Work search
+  const [workSearch, setWorkSearch] = useStateR('');
+  const [mbSearch, setMbSearch] = useStateR('');
+  const [mbResults, setMbResults] = useStateR([]);
+  const [mbLoading, setMbLoading] = useStateR(false);
+  const [showAddWork, setShowAddWork] = useStateR(false);
+  const [customWork, setCustomWork] = useStateR({ title: '', composer: '', language: '' });
+
+  const workSuggestions = useMemoR(() => {
+    if (workSearch.length < 2) return [];
+    const q = workSearch.toLowerCase();
+    return RDB.works.filter(w => {
+      const title = (w.mb_title || w.title_variant || '').toLowerCase();
+      const composer = (w.mb_composer || '').toLowerCase();
+      return title.includes(q) || composer.includes(q);
+    }).slice(0, 12);
+  }, [workSearch]);
+
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })); }
+
+  function addWorkFromRDB(work) {
+    setProgramItems(prev => [...prev, {
+      id: 'existing_' + work.work_id,
+      work_id: work.work_id,
+      title: work.mb_title || work.title_variant,
+      composer: work.mb_composer || '',
+      language: work.mb_language || '',
+      source: 'rdb'
+    }]);
+    setWorkSearch('');
+  }
+
+  function addWorkFromMB(mbWork) {
+    setProgramItems(prev => [...prev, {
+      id: 'mb_' + mbWork.id,
+      work_id: null,
+      mbid: mbWork.id,
+      title: mbWork.title,
+      composer: mbWork.relations?.find(r => r.type === 'composer')?.artist?.name || mbWork['artist-credit']?.[0]?.name || '',
+      language: mbWork.language || '',
+      source: 'musicbrainz'
+    }]);
+    setMbSearch('');
+    setMbResults([]);
+  }
+
+  function addCustomWork() {
+    if (!customWork.title) return;
+    setProgramItems(prev => [...prev, {
+      id: 'custom_' + Date.now(),
+      work_id: null,
+      title: customWork.title,
+      composer: customWork.composer,
+      language: customWork.language,
+      source: 'custom'
+    }]);
+    setCustomWork({ title: '', composer: '', language: '' });
+    setShowAddWork(false);
+  }
+
+  function addIntermission() {
+    setProgramItems(prev => [...prev, { id: 'int_' + Date.now(), isIntermission: true }]);
+  }
+
+  function removeItem(id) {
+    setProgramItems(prev => prev.filter(x => x.id !== id));
+  }
+
+  function moveItem(id, dir) {
+    setProgramItems(prev => {
+      const idx = prev.findIndex(x => x.id === id);
+      if (idx < 0) return prev;
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[idx], copy[newIdx]] = [copy[newIdx], copy[idx]];
+      return copy;
+    });
+  }
+
+  async function searchMusicBrainz() {
+    if (mbSearch.length < 2) return;
+    setMbLoading(true);
+    try {
+      const res = await fetch('https://musicbrainz.org/ws/2/work?query=' + encodeURIComponent(mbSearch) + '&fmt=json&limit=10', {
+        headers: { 'User-Agent': 'KoVox/1.0 (https://happyhillll.github.io)' }
+      });
+      const data = await res.json();
+      setMbResults(data.works || []);
+    } catch (e) {
+      console.error('MusicBrainz search failed:', e);
+      setMbResults([]);
+    }
+    setMbLoading(false);
+  }
+
+  function handlePoster(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setPosterData(reader.result);
+    reader.readAsDataURL(file);
+  }
+
+  function handleBrochures(e) {
+    const files = Array.from(e.target.files);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => setBrochures(prev => [...prev, reader.result]);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function submit() {
+    const id = 'USER_' + Date.now();
+    const submission = {
+      id,
+      performance_id: 'PERF_' + id,
+      performance_title: form.title,
+      performance_date: form.date,
+      start_time: form.startTime,
+      duration_minutes: form.durationMinutes ? parseInt(form.durationMinutes) : null,
+      venue_name: form.venue,
+      host: form.host,
+      sponsor: form.sponsor,
+      youtube: form.youtube,
+      singer: { name: form.singerName, medium: form.singerMedium, profile: form.singerProfile },
+      accompanist: form.accName ? { name: form.accName, medium: form.accMedium, profile: form.accProfile } : null,
+      program: programItems,
+      poster: posterData,
+      brochures: brochures,
+      submittedAt: new Date().toISOString()
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('kovox_submissions') || '[]');
+      existing.push(submission);
+      localStorage.setItem('kovox_submissions', JSON.stringify(existing));
+    } catch (e) {
+      console.error('Failed to save submission:', e);
+    }
+
+    setSubmitted(true);
+  }
+
+  const inputStyle = { width: '100%', padding: '14px 16px', fontSize: 15, background: 'var(--bg-deep)', border: '1px solid var(--rule)', color: 'var(--ink)', fontFamily: 'Pretendard', outline: 'none' };
+
+  if (submitted) {
+    return (
+      <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
+        <Nav2 />
+        <section style={{ padding: '120px 56px', textAlign: 'center' }}>
+          <div className="display coral" style={{ fontSize: 64, marginBottom: 24 }}>SUBMITTED</div>
+          <p style={{ fontSize: 18, color: 'var(--ink-soft)' }}>공연 정보가 등록되었습니다.</p>
+          <a href="#/performances" className="kv2-btn" style={{ display: 'inline-block', marginTop: 32, padding: '16px 32px', fontSize: 15, textDecoration: 'none' }}>공연 목록 보기 →</a>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
+      <Nav2 />
+      <PageHeader kicker="CONTRIBUTE · 참여형 아카이브" title="ADD A RECITAL" sub="공연 정보를 등록하세요. 프로그램의 곡을 검색하여 추가할 수 있습니다." />
+
+      <div style={{ padding: '0 56px 80px', maxWidth: 980 }}>
+        {/* Basic info */}
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 20 }}>● PERFORMANCE INFO</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 32 }}>
+          <div>
+            <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>TITLE / 공연 제목 *</label>
+            <input value={form.title} onChange={e => set('title', e.target.value)} style={inputStyle} placeholder="예: 소프라노 홍길동 독창회" />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
+            <div>
+              <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>DATE *</label>
+              <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>START TIME</label>
+              <input type="time" value={form.startTime} onChange={e => set('startTime', e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>DURATION (MIN)</label>
+              <input type="number" value={form.durationMinutes} onChange={e => set('durationMinutes', e.target.value)} style={inputStyle} placeholder="90" />
+            </div>
+            <div>
+              <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>VENUE / 공연장 *</label>
+              <input value={form.venue} onChange={e => set('venue', e.target.value)} style={inputStyle} placeholder="예: 금호아트홀 연세" />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+            <div>
+              <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>HOST / 주최</label>
+              <input value={form.host} onChange={e => set('host', e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>SPONSOR / 후원</label>
+              <input value={form.sponsor} onChange={e => set('sponsor', e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>YOUTUBE LINK</label>
+              <input value={form.youtube} onChange={e => set('youtube', e.target.value)} style={inputStyle} placeholder="https://youtube.com/watch?v=..." />
+            </div>
+          </div>
+        </div>
+
+        {/* Singer */}
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 20 }}>● SINGER / 성악가</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 16, marginBottom: 12 }}>
+          <div>
+            <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>NAME *</label>
+            <input value={form.singerName} onChange={e => set('singerName', e.target.value)} style={inputStyle} placeholder="성악가 이름" />
+          </div>
+          <div>
+            <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>VOICE TYPE</label>
+            <select value={form.singerMedium} onChange={e => set('singerMedium', e.target.value)} style={inputStyle}>
+              <option value="soprano">Soprano</option><option value="mezzo-soprano">Mezzo-Soprano</option>
+              <option value="tenor">Tenor</option><option value="baritone">Baritone</option><option value="bass">Bass</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ marginBottom: 32 }}>
+          <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>PROFILE / 프로필</label>
+          <textarea value={form.singerProfile} onChange={e => set('singerProfile', e.target.value)} rows="3" style={{ ...inputStyle, resize: 'vertical' }} placeholder="성악가 약력 (선택)" />
+        </div>
+
+        {/* Accompanist */}
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 20 }}>● ACCOMPANIST / 반주자</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 16, marginBottom: 12 }}>
+          <div>
+            <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>NAME</label>
+            <input value={form.accName} onChange={e => set('accName', e.target.value)} style={inputStyle} placeholder="반주자 이름" />
+          </div>
+          <div>
+            <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>INSTRUMENT</label>
+            <select value={form.accMedium} onChange={e => set('accMedium', e.target.value)} style={inputStyle}>
+              <option value="piano">Piano</option><option value="cello">Cello</option><option value="violin">Violin</option>
+              <option value="flute">Flute</option><option value="guitar">Guitar</option><option value="harp">Harp</option>
+              <option value="organ">Organ</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ marginBottom: 32 }}>
+          <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>PROFILE / 프로필</label>
+          <textarea value={form.accProfile} onChange={e => set('accProfile', e.target.value)} rows="2" style={{ ...inputStyle, resize: 'vertical' }} placeholder="반주자 약력 (선택)" />
+        </div>
+
+        {/* Programme */}
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 20 }}>● PROGRAMME / 프로그램</div>
+
+        {/* Current programme list */}
+        {programItems.length > 0 && (
+          <div style={{ marginBottom: 20, border: '1px solid var(--rule)', padding: 16 }}>
+            {programItems.map((item, idx) => (
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: idx > 0 ? '1px solid var(--rule)' : 'none' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <button onClick={() => moveItem(item.id, -1)} style={{ background: 'transparent', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer', fontSize: 10, padding: 2 }}>▲</button>
+                  <button onClick={() => moveItem(item.id, 1)} style={{ background: 'transparent', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer', fontSize: 10, padding: 2 }}>▼</button>
+                </div>
+                <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', width: 24 }}>{idx + 1}</span>
+                {item.isIntermission ? (
+                  <span className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)', fontStyle: 'italic', flex: 1 }}>— INTERMISSION —</span>
+                ) : (
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: 15 }}>{item.title}</span>
+                    <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 10 }}>{item.composer}</span>
+                    {item.source === 'musicbrainz' && <span className="mono" style={{ fontSize: 9, color: '#6bc5f5', marginLeft: 6, border: '1px solid #6bc5f5', padding: '1px 4px' }}>MB</span>}
+                    {item.source === 'custom' && <span className="mono" style={{ fontSize: 9, color: '#e8c547', marginLeft: 6, border: '1px solid #e8c547', padding: '1px 4px' }}>NEW</span>}
+                  </div>
+                )}
+                <button onClick={() => removeItem(item.id)} style={{ background: 'transparent', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer', fontSize: 14 }}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Search works from RDB */}
+        <div style={{ marginBottom: 12 }}>
+          <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>SEARCH EXISTING WORKS / 기존 곡 검색</label>
+          <input value={workSearch} onChange={e => setWorkSearch(e.target.value)} style={inputStyle} placeholder="곡 제목 또는 작곡가 이름으로 검색..." />
+        </div>
+        {workSuggestions.length > 0 && (
+          <div style={{ marginBottom: 16, border: '1px solid var(--rule)', maxHeight: 250, overflowY: 'auto', background: 'var(--bg-deep)' }}>
+            {workSuggestions.map(w => (
+              <div key={w.work_id} onClick={() => addWorkFromRDB(w)} style={{ padding: '10px 16px', cursor: 'pointer', borderBottom: '1px solid var(--rule)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(245,123,107,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <span style={{ fontSize: 14 }}>{w.mb_title || w.title_variant}</span>
+                <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 10 }}>{w.mb_composer || ''}</span>
+                <span className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', marginLeft: 8 }}>{langName(w.mb_language)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Search MusicBrainz */}
+        <div style={{ marginBottom: 12 }}>
+          <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>SEARCH MUSICBRAINZ / 새로운 곡 검색</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={mbSearch} onChange={e => setMbSearch(e.target.value)} style={{ ...inputStyle, flex: 1 }} placeholder="MusicBrainz에서 곡 검색..."
+              onKeyDown={e => { if (e.key === 'Enter') searchMusicBrainz(); }} />
+            <button onClick={searchMusicBrainz} className="kv2-btn" style={{ padding: '14px 20px', border: 'none', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}>
+              {mbLoading ? '...' : '검색'}
+            </button>
+          </div>
+        </div>
+        {mbResults.length > 0 && (
+          <div style={{ marginBottom: 16, border: '1px solid #6bc5f5', maxHeight: 300, overflowY: 'auto', background: 'var(--bg-deep)' }}>
+            <div className="mono" style={{ fontSize: 10, color: '#6bc5f5', padding: '8px 16px', letterSpacing: '0.15em', borderBottom: '1px solid var(--rule)' }}>MUSICBRAINZ RESULTS</div>
+            {mbResults.map(w => (
+              <div key={w.id} onClick={() => addWorkFromMB(w)} style={{ padding: '10px 16px', cursor: 'pointer', borderBottom: '1px solid var(--rule)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(107,197,245,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <span style={{ fontSize: 14 }}>{w.title}</span>
+                {w['artist-credit'] && w['artist-credit'][0] && (
+                  <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 10 }}>{w['artist-credit'][0].name}</span>
+                )}
+                {w.language && <span className="mono" style={{ fontSize: 10, color: '#6bc5f5', marginLeft: 8 }}>{w.language}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Manual add / Intermission */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
+          <button onClick={() => setShowAddWork(!showAddWork)} className="mono" style={{ background: 'transparent', border: '1px solid var(--rule)', color: 'var(--ink-soft)', padding: '10px 16px', fontSize: 11, cursor: 'pointer' }}>
+            + 직접 입력
+          </button>
+          <button onClick={addIntermission} className="mono" style={{ background: 'transparent', border: '1px solid var(--rule)', color: 'var(--ink-soft)', padding: '10px 16px', fontSize: 11, cursor: 'pointer' }}>
+            + INTERMISSION
+          </button>
+        </div>
+
+        {showAddWork && (
+          <div style={{ marginBottom: 32, padding: 16, border: '1px solid var(--rule)', background: 'var(--bg-deep)' }}>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', marginBottom: 12 }}>직접 곡 정보 입력</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px 120px', gap: 12, marginBottom: 12 }}>
+              <input value={customWork.title} onChange={e => setCustomWork(c => ({ ...c, title: e.target.value }))} style={inputStyle} placeholder="곡 제목" />
+              <input value={customWork.composer} onChange={e => setCustomWork(c => ({ ...c, composer: e.target.value }))} style={inputStyle} placeholder="작곡가" />
+              <input value={customWork.language} onChange={e => setCustomWork(c => ({ ...c, language: e.target.value }))} style={inputStyle} placeholder="언어" />
+            </div>
+            <button onClick={addCustomWork} className="kv2-btn" style={{ padding: '10px 20px', border: 'none', cursor: 'pointer', fontSize: 12 }}>추가</button>
+          </div>
+        )}
+
+        {/* Images */}
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 20 }}>● IMAGES</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
+          <div>
+            <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>POSTER / 포스터</label>
+            <input type="file" accept="image/*" onChange={handlePoster} style={{ fontSize: 13, color: 'var(--ink-soft)' }} />
+            {posterData && <img src={posterData} alt="Poster preview" style={{ width: 150, height: 'auto', marginTop: 12, border: '1px solid var(--rule)' }} />}
+          </div>
+          <div>
+            <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>BROCHURE / 브로슈어 (복수 가능)</label>
+            <input type="file" accept="image/*" multiple onChange={handleBrochures} style={{ fontSize: 13, color: 'var(--ink-soft)' }} />
+            {brochures.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                {brochures.map((src, i) => (
+                  <div key={i} style={{ position: 'relative' }}>
+                    <img src={src} alt={'Brochure ' + (i + 1)} style={{ width: 100, height: 'auto', border: '1px solid var(--rule)' }} />
+                    <button onClick={() => setBrochures(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: -6, right: -6, background: 'var(--coral)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', fontSize: 11, lineHeight: 1 }}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* YouTube preview */}
+        {form.youtube && getYoutubeId(form.youtube) && (
+          <div style={{ marginBottom: 32 }}>
+            <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 12 }}>● VIDEO PREVIEW</div>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 560, paddingBottom: '315px', background: '#000' }}>
+              <iframe src={'https://www.youtube.com/embed/' + getYoutubeId(form.youtube)} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+            </div>
+          </div>
+        )}
+
+        {/* Submit */}
+        <div style={{ marginTop: 40, display: 'flex', justifyContent: 'flex-end', gap: 16, borderTop: '1px solid var(--rule)', paddingTop: 32 }}>
+          <button onClick={submit} className="kv2-btn" style={{ padding: '16px 40px', fontSize: 16, border: 'none', cursor: 'pointer', opacity: (form.title && form.date && form.venue && form.singerName) ? 1 : 0.4 }}>
+            아카이브에 제출 →
+          </button>
+        </div>
+
+        <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', marginTop: 16, lineHeight: 1.8 }}>
+          * 데이터는 현재 브라우저의 localStorage에 저장됩니다. 추후 서버 연동 시 실제 DB에 반영됩니다.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getYoutubeId(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([^?&#]+)/);
+  return m ? m[1] : null;
+}
+
 /* ================= SEARCH PAGE ================= */
 function SearchPage() {
   const [query, setQuery] = useStateR('');
@@ -2684,4 +3098,4 @@ function SearchPage() {
 }
 
 /* ================= EXPORTS ================= */
-window.KoVoxPagesRDB = { SingersRDB, SingerProfile, Repertoire, WorkDetail, Network, SearchPage, PerformancesList, DetailProgramme, ComposerDetail, ReviewSection };
+window.KoVoxPagesRDB = { SingersRDB, SingerProfile, Repertoire, WorkDetail, Network, SearchPage, PerformancesList, DetailProgramme, ComposerDetail, ReviewSection, ContributeRDB };
