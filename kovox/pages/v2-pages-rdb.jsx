@@ -13,6 +13,118 @@ const LANG_NAMES = {
 };
 function langName(code) { return code ? (LANG_NAMES[code] || code) : ''; }
 
+/* ================= MERGE USER SUBMISSIONS INTO RDB ================= */
+function mergeUserSubmissions() {
+  try {
+    const subs = JSON.parse(localStorage.getItem('kovox_submissions') || '[]');
+    subs.forEach(sub => {
+      const perfId = sub.performance_id || ('PERF_' + sub.id);
+      // Skip if already merged
+      if (RDB.performances.find(p => p.performance_id === perfId)) return;
+
+      // Add to RDB.performances
+      RDB.performances.push({
+        performance_id: perfId,
+        performance_date: sub.performance_date || sub.date,
+        performance_title: sub.performance_title || sub.title,
+        venue_name: sub.venue_name || sub.venue,
+        duration_minutes: sub.duration_minutes || null,
+        start_time: sub.start_time || sub.startTime || null,
+        host_organization: sub.host || null,
+        sponsoring_organization: sub.sponsor || null,
+        mt20id: null,
+        performance_abstract: null,
+        _user_submitted: true,
+        _youtube: sub.youtube || null,
+        _poster: sub.poster || null,
+        _brochures: sub.brochures || []
+      });
+
+      // Add singer to RDB.persons
+      const singer = sub.singer;
+      if (singer && singer.name) {
+        const singerId = 'PERSON_USER_' + sub.id + '_singer';
+        if (!RDB.persons.find(p => p.person_id === singerId)) {
+          RDB.persons.push({
+            person_id: singerId,
+            person_name: singer.name,
+            person_role: 'main performer',
+            person_medium: singer.medium || 'soprano',
+            person_profile: singer.profile || null,
+            person_isni: null
+          });
+          // Add participation
+          RDB.participations.push({ performance_id: perfId, program_item_id: perfId + '_ITEM_0', person_id: singerId });
+        }
+      }
+
+      // Add accompanist to RDB.persons
+      const acc = sub.accompanist;
+      if (acc && acc.name) {
+        const accId = 'PERSON_USER_' + sub.id + '_acc';
+        if (!RDB.persons.find(p => p.person_id === accId)) {
+          RDB.persons.push({
+            person_id: accId,
+            person_name: acc.name,
+            person_role: 'accompanist',
+            person_medium: acc.medium || 'piano',
+            person_profile: acc.profile || null,
+            person_isni: null
+          });
+          RDB.participations.push({ performance_id: perfId, program_item_id: perfId + '_ITEM_0', person_id: accId });
+        }
+      }
+
+      // Add program items
+      const program = sub.program || [];
+      program.forEach((item, idx) => {
+        const progItemId = perfId + '_ITEM_' + idx;
+        if (item.isIntermission) {
+          RDB.programs.push({ program_item_id: progItemId, performance_id: perfId, work_id: null, program_order: idx, is_intermission: 'TRUE' });
+        } else {
+          let workId = item.work_id;
+          // If custom or MB work, add to works table
+          if (!workId && (item.source === 'custom' || item.source === 'musicbrainz')) {
+            workId = 'WRK_USER_' + sub.id + '_' + idx;
+            if (!RDB.works.find(w => w.work_id === workId)) {
+              RDB.works.push({
+                work_id: workId,
+                title_variant: item.title,
+                mb_title: item.title,
+                mb_composer: item.composer || null,
+                mb_language: item.language || null,
+                mb_type: null, mb_composer_birth_year: null, mb_composer_death_year: null,
+                mb_lyricist: null, mb_arranger: null, mbid: item.mbid || null,
+                mb_parent_work_title: null, mbid_parent_work: null
+              });
+            }
+          }
+          RDB.programs.push({ program_item_id: progItemId, performance_id: perfId, work_id: workId, program_order: idx, is_intermission: 'FALSE' });
+        }
+      });
+
+      // Also add to the flat D.performances (kovox-data.js) for Detail page compatibility
+      const D_flat = window.KOVOX_DATA;
+      if (D_flat && !D_flat.performances.find(p => String(p.id) === String(sub.id))) {
+        const composers = program.filter(it => !it.isIntermission && it.composer).map(it => it.composer);
+        D_flat.performances.push({
+          id: sub.id,
+          date: sub.performance_date || sub.date,
+          title: sub.performance_title || sub.title,
+          singer: singer ? singer.name : '',
+          voice: singer ? (singer.medium || '') : '',
+          venue: sub.venue_name || sub.venue,
+          time: sub.start_time || sub.startTime || '',
+          composers: [...new Set(composers)]
+        });
+      }
+    });
+  } catch (e) {
+    console.error('Failed to merge user submissions:', e);
+  }
+}
+mergeUserSubmissions();
+
 /* ================= PRECOMPUTED INDEXES ================= */
 const IX = (() => {
   const perfById = {};

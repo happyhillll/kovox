@@ -158,20 +158,13 @@ function getYoutubeId(url) {
 function Detail({ perfId }) {
   const p = D.performances.find(x => String(x.id) === String(perfId)) || D.performances[0];
   const rdb = window.KOVOX_RDB ? window.KOVOX_RDB.performances.find(x => x.performance_id === 'PERF_' + perfId) : null;
-  // Check localStorage for user-submitted data
-  const userPerf = React.useMemo(() => {
-    try {
-      const subs = JSON.parse(localStorage.getItem('kovox_submissions') || '[]');
-      return subs.find(s => String(s.id) === String(perfId));
-    } catch { return null; }
-  }, [perfId]);
   const startTime = (rdb && rdb.start_time) || p.time || '—';
   const duration = (rdb && rdb.duration_minutes) ? rdb.duration_minutes + 'min' : '—';
-  const host = (rdb && rdb.host_organization) || (userPerf && userPerf.host) || null;
-  const sponsor = (rdb && rdb.sponsoring_organization) || (userPerf && userPerf.sponsor) || null;
-  const youtubeUrl = (userPerf && userPerf.youtube) || null;
+  const host = (rdb && rdb.host_organization) || null;
+  const sponsor = (rdb && rdb.sponsoring_organization) || null;
+  const youtubeUrl = (rdb && rdb._youtube) || null;
   const youtubeId = getYoutubeId(youtubeUrl);
-  const brochures = (userPerf && userPerf.brochures) || [];
+  const brochures = (rdb && rdb._brochures) || [];
 
   return (
     <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
@@ -182,7 +175,7 @@ function Detail({ perfId }) {
       </div>
       <section style={{ padding: '40px 56px', display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 64 }}>
         <div style={{ position: 'relative', background: '#000', overflow: 'hidden' }}>
-          <img src={'viewer/data/4096/' + p.id + '.jpg'} alt={p.title} style={{ width: '100%', height: 'auto', display: 'block' }}
+          <img src={(rdb && rdb._poster) || ('viewer/data/4096/' + p.id + '.jpg')} alt={p.title} style={{ width: '100%', height: 'auto', display: 'block' }}
             onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.minHeight = '620px'; e.target.parentElement.classList.add('placeholder'); e.target.parentElement.setAttribute('data-label', 'poster'); }} />
         </div>
         <div>
