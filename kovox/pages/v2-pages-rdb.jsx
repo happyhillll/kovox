@@ -40,11 +40,11 @@ function mergeUserSubmissions() {
         _brochures: sub.brochures || []
       });
 
-      // Add singer to RDB.persons
+      // Add singer — use linked ID if available, otherwise create new
       const singer = sub.singer;
       if (singer && singer.name) {
-        const singerId = 'PERSON_USER_' + sub.id + '_singer';
-        if (!RDB.persons.find(p => p.person_id === singerId)) {
+        const singerId = singer.linkedId || ('PERSON_USER_' + sub.id + '_singer');
+        if (!singer.linkedId && !RDB.persons.find(p => p.person_id === singerId)) {
           RDB.persons.push({
             person_id: singerId,
             person_name: singer.name,
@@ -53,16 +53,15 @@ function mergeUserSubmissions() {
             person_profile: singer.profile || null,
             person_isni: null
           });
-          // Add participation
-          RDB.participations.push({ performance_id: perfId, program_item_id: perfId + '_ITEM_0', person_id: singerId });
         }
+        RDB.participations.push({ performance_id: perfId, program_item_id: perfId + '_ITEM_0', person_id: singerId });
       }
 
-      // Add accompanist to RDB.persons
+      // Add accompanist — use linked ID if available, otherwise create new
       const acc = sub.accompanist;
       if (acc && acc.name) {
-        const accId = 'PERSON_USER_' + sub.id + '_acc';
-        if (!RDB.persons.find(p => p.person_id === accId)) {
+        const accId = acc.linkedId || ('PERSON_USER_' + sub.id + '_acc');
+        if (!acc.linkedId && !RDB.persons.find(p => p.person_id === accId)) {
           RDB.persons.push({
             person_id: accId,
             person_name: acc.name,
@@ -71,8 +70,8 @@ function mergeUserSubmissions() {
             person_profile: acc.profile || null,
             person_isni: null
           });
-          RDB.participations.push({ performance_id: perfId, program_item_id: perfId + '_ITEM_0', person_id: accId });
         }
+        RDB.participations.push({ performance_id: perfId, program_item_id: perfId + '_ITEM_0', person_id: accId });
       }
 
       // Add program items
@@ -124,6 +123,65 @@ function mergeUserSubmissions() {
   }
 }
 mergeUserSubmissions();
+
+/* ================= DEDUPLICATE PERSONS BY NAME ================= */
+(() => {
+  const nameMap = {}; // "name||role" -> [person objects]
+  RDB.persons.forEach(p => {
+    const key = (p.person_name || '').toLowerCase() + '||' + (p.person_role || '');
+    if (!nameMap[key]) nameMap[key] = [];
+    nameMap[key].push(p);
+  });
+
+  Object.values(nameMap).forEach(dupes => {
+    if (dupes.length <= 1) return;
+    // Keep the one with the most recent activity, or the one with a profile
+    // Pick primary: prefer one with profile, then by latest performance date
+    dupes.sort((a, b) => {
+      if (a.person_profile && !b.person_profile) return -1;
+      if (!a.person_profile && b.person_profile) return 1;
+      // Compare by latest performance date
+      const aParts = RDB.participations.filter(pa => pa.person_id === a.person_id);
+      const bParts = RDB.participations.filter(pa => pa.person_id === b.person_id);
+      const aPerfs = aParts.map(pa => RDB.performances.find(p => p.performance_id === pa.performance_id)).filter(Boolean);
+      const bPerfs = bParts.map(pa => RDB.performances.find(p => p.performance_id === pa.performance_id)).filter(Boolean);
+      const aLatest = aPerfs.reduce((max, p) => p.performance_date > max ? p.performance_date : max, '');
+      const bLatest = bPerfs.reduce((max, p) => p.performance_date > max ? p.performance_date : max, '');
+      return bLatest.localeCompare(aLatest);
+    });
+
+    const primary = dupes[0];
+    // Use the most recent profile
+    const withProfile = dupes.filter(d => d.person_profile).sort((a, b) => {
+      const aParts = RDB.participations.filter(pa => pa.person_id === a.person_id);
+      const bParts = RDB.participations.filter(pa => pa.person_id === b.person_id);
+      const aPerfs = aParts.map(pa => RDB.performances.find(p => p.performance_id === pa.performance_id)).filter(Boolean);
+      const bPerfs = bParts.map(pa => RDB.performances.find(p => p.performance_id === pa.performance_id)).filter(Boolean);
+      const aLatest = aPerfs.reduce((max, p) => p.performance_date > max ? p.performance_date : max, '');
+      const bLatest = bPerfs.reduce((max, p) => p.performance_date > max ? p.performance_date : max, '');
+      return bLatest.localeCompare(aLatest);
+    });
+    if (withProfile.length > 0) {
+      primary.person_profile = withProfile[0].person_profile;
+    }
+    if (!primary.person_isni) {
+      const withIsni = dupes.find(d => d.person_isni);
+      if (withIsni) primary.person_isni = withIsni.person_isni;
+    }
+
+    // Redirect all participations from duplicates to primary
+    const dupeIds = dupes.slice(1).map(d => d.person_id);
+    RDB.participations.forEach(pa => {
+      if (dupeIds.includes(pa.person_id)) pa.person_id = primary.person_id;
+    });
+
+    // Remove duplicates from persons array
+    dupeIds.forEach(did => {
+      const idx = RDB.persons.findIndex(p => p.person_id === did);
+      if (idx >= 0) RDB.persons.splice(idx, 1);
+    });
+  });
+})();
 
 /* ================= PRECOMPUTED INDEXES ================= */
 const IX = (() => {
@@ -2555,6 +2613,34 @@ function ContributeRDB() {
   const [mbLoading, setMbLoading] = useStateR(false);
   const [showAddWork, setShowAddWork] = useStateR(false);
   const [customWork, setCustomWork] = useStateR({ title: '', composer: '', language: '' });
+  const [singerLinkedId, setSingerLinkedId] = useStateR(null);
+  const [accLinkedId, setAccLinkedId] = useStateR(null);
+  const [showSingerSuggest, setShowSingerSuggest] = useStateR(false);
+  const [showAccSuggest, setShowAccSuggest] = useStateR(false);
+
+  const singerSuggestions = useMemoR(() => {
+    if (form.singerName.length < 2) return [];
+    const q = form.singerName.toLowerCase();
+    return RDB.persons.filter(p => p.person_role === 'main performer' && p.person_name && p.person_name.toLowerCase().includes(q)).slice(0, 8);
+  }, [form.singerName]);
+
+  const accSuggestions = useMemoR(() => {
+    if (form.accName.length < 2) return [];
+    const q = form.accName.toLowerCase();
+    return RDB.persons.filter(p => p.person_role === 'accompanist' && p.person_name && p.person_name.toLowerCase().includes(q)).slice(0, 8);
+  }, [form.accName]);
+
+  function selectSinger(person) {
+    setSingerLinkedId(person.person_id);
+    setForm(f => ({ ...f, singerName: person.person_name, singerMedium: person.person_medium || 'soprano', singerProfile: person.person_profile || '' }));
+    setShowSingerSuggest(false);
+  }
+
+  function selectAcc(person) {
+    setAccLinkedId(person.person_id);
+    setForm(f => ({ ...f, accName: person.person_name, accMedium: person.person_medium || 'piano', accProfile: person.person_profile || '' }));
+    setShowAccSuggest(false);
+  }
 
   const workSuggestions = useMemoR(() => {
     if (workSearch.length < 2) return [];
@@ -2713,8 +2799,8 @@ function ContributeRDB() {
         host: form.host,
         sponsor: form.sponsor,
         youtube: form.youtube,
-        singer: { name: form.singerName, medium: form.singerMedium, profile: form.singerProfile },
-        accompanist: form.accName ? { name: form.accName, medium: form.accMedium, profile: form.accProfile } : null,
+        singer: { name: form.singerName, medium: form.singerMedium, profile: form.singerProfile, linkedId: singerLinkedId },
+        accompanist: form.accName ? { name: form.accName, medium: form.accMedium, profile: form.accProfile, linkedId: accLinkedId } : null,
         program: programItems,
         poster: posterData,
         brochures: brochures,
@@ -2808,10 +2894,22 @@ function ContributeRDB() {
 
         {/* Singer */}
         <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 20 }}>● SINGER / 성악가</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 16, marginBottom: 12 }}>
-          <div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 16, marginBottom: 4 }}>
+          <div style={{ position: 'relative' }}>
             <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>NAME *</label>
-            <input value={form.singerName} onChange={e => set('singerName', e.target.value)} style={inputStyle} placeholder="성악가 이름" />
+            <input value={form.singerName} onChange={e => { set('singerName', e.target.value); setSingerLinkedId(null); setShowSingerSuggest(true); }} onFocus={() => setShowSingerSuggest(true)} style={inputStyle} placeholder="성악가 이름 (기존 DB 검색 가능)" />
+            {showSingerSuggest && singerSuggestions.length > 0 && !singerLinkedId && (
+              <div style={{ position: 'absolute', zIndex: 20, top: '100%', left: 0, right: 0, border: '1px solid var(--coral)', maxHeight: 220, overflowY: 'auto', background: '#1f1d1b' }}>
+                {singerSuggestions.map(p => (
+                  <div key={p.person_id} onClick={() => selectSinger(p)} style={{ padding: '10px 16px', cursor: 'pointer', borderBottom: '1px solid var(--rule)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(245,123,107,0.1)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    <span className="display-kr" style={{ fontSize: 16 }}>{p.person_name}</span>
+                    <span className="mono coral" style={{ fontSize: 10, marginLeft: 8 }}>{(p.person_medium || '').toUpperCase()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>VOICE TYPE</label>
@@ -2821,6 +2919,9 @@ function ContributeRDB() {
             </select>
           </div>
         </div>
+        {singerLinkedId && (
+          <div className="mono" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 8 }}>✓ 기존 DB의 인물과 연결됨: {singerLinkedId}</div>
+        )}
         <div style={{ marginBottom: 32 }}>
           <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>PROFILE / 프로필</label>
           <textarea value={form.singerProfile} onChange={e => set('singerProfile', e.target.value)} rows="3" style={{ ...inputStyle, resize: 'vertical' }} placeholder="성악가 약력 (선택)" />
@@ -2828,10 +2929,22 @@ function ContributeRDB() {
 
         {/* Accompanist */}
         <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 20 }}>● ACCOMPANIST / 반주자</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 16, marginBottom: 12 }}>
-          <div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 16, marginBottom: 4 }}>
+          <div style={{ position: 'relative' }}>
             <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>NAME</label>
-            <input value={form.accName} onChange={e => set('accName', e.target.value)} style={inputStyle} placeholder="반주자 이름" />
+            <input value={form.accName} onChange={e => { set('accName', e.target.value); setAccLinkedId(null); setShowAccSuggest(true); }} onFocus={() => setShowAccSuggest(true)} style={inputStyle} placeholder="반주자 이름 (기존 DB 검색 가능)" />
+            {showAccSuggest && accSuggestions.length > 0 && !accLinkedId && (
+              <div style={{ position: 'absolute', zIndex: 20, top: '100%', left: 0, right: 0, border: '1px solid #e8c547', maxHeight: 220, overflowY: 'auto', background: '#1f1d1b' }}>
+                {accSuggestions.map(p => (
+                  <div key={p.person_id} onClick={() => selectAcc(p)} style={{ padding: '10px 16px', cursor: 'pointer', borderBottom: '1px solid var(--rule)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,197,71,0.1)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    <span className="display-kr" style={{ fontSize: 16 }}>{p.person_name}</span>
+                    <span className="mono" style={{ fontSize: 10, color: '#e8c547', marginLeft: 8 }}>{(p.person_medium || '').toUpperCase()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>INSTRUMENT</label>
@@ -2842,6 +2955,9 @@ function ContributeRDB() {
             </select>
           </div>
         </div>
+        {accLinkedId && (
+          <div className="mono" style={{ fontSize: 10, color: '#e8c547', marginBottom: 8 }}>✓ 기존 DB의 인물과 연결됨: {accLinkedId}</div>
+        )}
         <div style={{ marginBottom: 32 }}>
           <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>PROFILE / 프로필</label>
           <textarea value={form.accProfile} onChange={e => set('accProfile', e.target.value)} rows="2" style={{ ...inputStyle, resize: 'vertical' }} placeholder="반주자 약력 (선택)" />
