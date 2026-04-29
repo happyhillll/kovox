@@ -2549,35 +2549,77 @@ function ContributeRDB() {
     });
   }
 
-  function submit() {
+  const SHEETS_API = 'https://script.google.com/macros/s/AKfycbzM-Yw5bSkJeJGjliN4ftAHjhQwX-ILiZO7PaGzLmNPIBmv1aL5uDlC1DwlB9Xzvv5fEw/exec';
+  const [submitting, setSubmitting] = useStateR(false);
+  const [submitError, setSubmitError] = useStateR(null);
+
+  async function submit() {
+    setSubmitting(true);
+    setSubmitError(null);
     const id = 'USER_' + Date.now();
     const submission = {
       id,
-      performance_id: 'PERF_' + id,
-      performance_title: form.title,
-      performance_date: form.date,
-      start_time: form.startTime,
-      duration_minutes: form.durationMinutes ? parseInt(form.durationMinutes) : null,
-      venue_name: form.venue,
+      title: form.title,
+      date: form.date,
+      startTime: form.startTime,
+      duration: form.durationMinutes || '',
+      venue: form.venue,
       host: form.host,
       sponsor: form.sponsor,
       youtube: form.youtube,
-      singer: { name: form.singerName, medium: form.singerMedium, profile: form.singerProfile },
-      accompanist: form.accName ? { name: form.accName, medium: form.accMedium, profile: form.accProfile } : null,
+      singerName: form.singerName,
+      singerMedium: form.singerMedium,
+      singerProfile: form.singerProfile,
+      accName: form.accName,
+      accMedium: form.accMedium,
+      accProfile: form.accProfile,
       program: programItems,
-      poster: posterData,
-      brochures: brochures,
+      poster: posterData ? '(image attached)' : '',
+      brochures: brochures.length > 0 ? brochures : [],
       submittedAt: new Date().toISOString()
     };
 
+    // Save to localStorage
     try {
+      const localSub = {
+        id,
+        performance_id: 'PERF_' + id,
+        performance_title: form.title,
+        performance_date: form.date,
+        start_time: form.startTime,
+        duration_minutes: form.durationMinutes ? parseInt(form.durationMinutes) : null,
+        venue_name: form.venue,
+        host: form.host,
+        sponsor: form.sponsor,
+        youtube: form.youtube,
+        singer: { name: form.singerName, medium: form.singerMedium, profile: form.singerProfile },
+        accompanist: form.accName ? { name: form.accName, medium: form.accMedium, profile: form.accProfile } : null,
+        program: programItems,
+        poster: posterData,
+        brochures: brochures,
+        submittedAt: new Date().toISOString()
+      };
       const existing = JSON.parse(localStorage.getItem('kovox_submissions') || '[]');
-      existing.push(submission);
+      existing.push(localSub);
       localStorage.setItem('kovox_submissions', JSON.stringify(existing));
     } catch (e) {
-      console.error('Failed to save submission:', e);
+      console.error('localStorage save failed:', e);
     }
 
+    // Send to Google Sheets
+    try {
+      await fetch(SHEETS_API, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submission)
+      });
+    } catch (e) {
+      console.error('Google Sheets submission failed:', e);
+      setSubmitError('Google Sheets 전송에 실패했지만, 로컬에는 저장되었습니다.');
+    }
+
+    setSubmitting(false);
     setSubmitted(true);
   }
 
@@ -2818,13 +2860,13 @@ function ContributeRDB() {
 
         {/* Submit */}
         <div style={{ marginTop: 40, display: 'flex', justifyContent: 'flex-end', gap: 16, borderTop: '1px solid var(--rule)', paddingTop: 32 }}>
-          <button onClick={submit} className="kv2-btn" style={{ padding: '16px 40px', fontSize: 16, border: 'none', cursor: 'pointer', opacity: (form.title && form.date && form.venue && form.singerName) ? 1 : 0.4 }}>
-            아카이브에 제출 →
+          <button onClick={submit} disabled={submitting || !(form.title && form.date && form.venue && form.singerName)} className="kv2-btn" style={{ padding: '16px 40px', fontSize: 16, border: 'none', cursor: submitting ? 'wait' : 'pointer', opacity: (form.title && form.date && form.venue && form.singerName && !submitting) ? 1 : 0.4 }}>
+            {submitting ? '제출 중...' : '아카이브에 제출 →'}
           </button>
         </div>
 
         <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', marginTop: 16, lineHeight: 1.8 }}>
-          * 데이터는 현재 브라우저의 localStorage에 저장됩니다. 추후 서버 연동 시 실제 DB에 반영됩니다.
+          * 데이터는 Google Sheets와 로컬 브라우저에 동시 저장됩니다.
         </div>
       </div>
     </div>
