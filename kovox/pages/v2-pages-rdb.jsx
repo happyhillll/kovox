@@ -2586,7 +2586,7 @@ function ContributeRDB() {
       work_id: null,
       mbid: mbWork.id,
       title: mbWork.title,
-      composer: mbWork.relations?.find(r => r.type === 'composer')?.artist?.name || mbWork['artist-credit']?.[0]?.name || '',
+      composer: getMBComposer(mbWork),
       language: mbWork.language || '',
       source: 'musicbrainz'
     }]);
@@ -2628,11 +2628,20 @@ function ContributeRDB() {
     });
   }
 
+  function getMBComposer(w) {
+    if (w.relations) {
+      const comp = w.relations.find(r => r.type === 'composer');
+      if (comp && comp.artist) return comp.artist.name;
+    }
+    if (w['artist-credit'] && w['artist-credit'][0]) return w['artist-credit'][0].name;
+    return '';
+  }
+
   async function searchMusicBrainz() {
     if (mbSearch.length < 2) return;
     setMbLoading(true);
     try {
-      const res = await fetch('https://musicbrainz.org/ws/2/work?query=' + encodeURIComponent(mbSearch) + '&fmt=json&limit=10', {
+      const res = await fetch('https://musicbrainz.org/ws/2/work?query=' + encodeURIComponent(mbSearch) + '&fmt=json&limit=15&inc=artist-rels', {
         headers: { 'User-Agent': 'KoVox/1.0 (https://happyhillll.github.io)' }
       });
       const data = await res.json();
@@ -2905,8 +2914,8 @@ function ContributeRDB() {
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(107,197,245,0.1)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <span style={{ fontSize: 14 }}>{w.title}</span>
-                {w['artist-credit'] && w['artist-credit'][0] && (
-                  <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 10 }}>{w['artist-credit'][0].name}</span>
+                {getMBComposer(w) && (
+                  <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 10 }}>{getMBComposer(w)}</span>
                 )}
                 {w.language && <span className="mono" style={{ fontSize: 10, color: '#6bc5f5', marginLeft: 8 }}>{w.language}</span>}
               </div>
