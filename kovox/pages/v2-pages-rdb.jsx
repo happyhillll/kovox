@@ -17,10 +17,24 @@ function langName(code) { return code ? (LANG_NAMES[code] || code) : ''; }
 function mergeUserSubmissions() {
   try {
     const subs = JSON.parse(localStorage.getItem('kovox_submissions') || '[]');
-    subs.forEach(sub => {
+    // Deduplicate submissions by title+date before merging
+    const seen = new Set();
+    const uniqueSubs = subs.filter(sub => {
+      const key = (sub.performance_title || sub.title || '') + '||' + (sub.performance_date || sub.date || '');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (uniqueSubs.length < subs.length) {
+      localStorage.setItem('kovox_submissions', JSON.stringify(uniqueSubs));
+    }
+    uniqueSubs.forEach(sub => {
       const perfId = sub.performance_id || ('PERF_' + sub.id);
-      // Skip if already merged
+      // Skip if already merged or if same title+date exists in RDB
       if (RDB.performances.find(p => p.performance_id === perfId)) return;
+      const title = sub.performance_title || sub.title || '';
+      const date = sub.performance_date || sub.date || '';
+      if (title && date && RDB.performances.find(p => p.performance_title === title && p.performance_date === date)) return;
 
       // Add to RDB.performances
       RDB.performances.push({
@@ -124,64 +138,6 @@ function mergeUserSubmissions() {
 }
 mergeUserSubmissions();
 
-/* ================= DEDUPLICATE PERSONS BY NAME ================= */
-(() => {
-  const nameMap = {}; // "name||role" -> [person objects]
-  RDB.persons.forEach(p => {
-    const key = (p.person_name || '').toLowerCase() + '||' + (p.person_role || '');
-    if (!nameMap[key]) nameMap[key] = [];
-    nameMap[key].push(p);
-  });
-
-  Object.values(nameMap).forEach(dupes => {
-    if (dupes.length <= 1) return;
-    // Keep the one with the most recent activity, or the one with a profile
-    // Pick primary: prefer one with profile, then by latest performance date
-    dupes.sort((a, b) => {
-      if (a.person_profile && !b.person_profile) return -1;
-      if (!a.person_profile && b.person_profile) return 1;
-      // Compare by latest performance date
-      const aParts = RDB.participations.filter(pa => pa.person_id === a.person_id);
-      const bParts = RDB.participations.filter(pa => pa.person_id === b.person_id);
-      const aPerfs = aParts.map(pa => RDB.performances.find(p => p.performance_id === pa.performance_id)).filter(Boolean);
-      const bPerfs = bParts.map(pa => RDB.performances.find(p => p.performance_id === pa.performance_id)).filter(Boolean);
-      const aLatest = aPerfs.reduce((max, p) => p.performance_date > max ? p.performance_date : max, '');
-      const bLatest = bPerfs.reduce((max, p) => p.performance_date > max ? p.performance_date : max, '');
-      return bLatest.localeCompare(aLatest);
-    });
-
-    const primary = dupes[0];
-    // Use the most recent profile
-    const withProfile = dupes.filter(d => d.person_profile).sort((a, b) => {
-      const aParts = RDB.participations.filter(pa => pa.person_id === a.person_id);
-      const bParts = RDB.participations.filter(pa => pa.person_id === b.person_id);
-      const aPerfs = aParts.map(pa => RDB.performances.find(p => p.performance_id === pa.performance_id)).filter(Boolean);
-      const bPerfs = bParts.map(pa => RDB.performances.find(p => p.performance_id === pa.performance_id)).filter(Boolean);
-      const aLatest = aPerfs.reduce((max, p) => p.performance_date > max ? p.performance_date : max, '');
-      const bLatest = bPerfs.reduce((max, p) => p.performance_date > max ? p.performance_date : max, '');
-      return bLatest.localeCompare(aLatest);
-    });
-    if (withProfile.length > 0) {
-      primary.person_profile = withProfile[0].person_profile;
-    }
-    if (!primary.person_isni) {
-      const withIsni = dupes.find(d => d.person_isni);
-      if (withIsni) primary.person_isni = withIsni.person_isni;
-    }
-
-    // Redirect all participations from duplicates to primary
-    const dupeIds = dupes.slice(1).map(d => d.person_id);
-    RDB.participations.forEach(pa => {
-      if (dupeIds.includes(pa.person_id)) pa.person_id = primary.person_id;
-    });
-
-    // Remove duplicates from persons array
-    dupeIds.forEach(did => {
-      const idx = RDB.persons.findIndex(p => p.person_id === did);
-      if (idx >= 0) RDB.persons.splice(idx, 1);
-    });
-  });
-})();
 
 /* ================= PRECOMPUTED INDEXES ================= */
 const IX = (() => {
