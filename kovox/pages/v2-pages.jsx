@@ -11,17 +11,98 @@ const NAV_LINKS = [
   { label: 'About', href: '#/about' }
 ];
 
-const Nav2 = ({ active = '' }) => (
-  <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 56px', borderBottom: '1px solid var(--rule)' }}>
-    <a href="#/" className="display" style={{ fontSize: 20, textDecoration: 'none', color: 'var(--ink)' }}>KO<span className="coral">VOX</span></a>
-    <nav style={{ display: 'flex', gap: 32, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-      {NAV_LINKS.map(x => (
-        <a key={x.label} href={x.href} style={{ color: active === x.label ? 'var(--coral)' : 'var(--ink-soft)', textDecoration: 'none' }}>{x.label}</a>
-      ))}
-    </nav>
-    <a href="#/search" className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'none', cursor: 'pointer' }}>⌕ SEARCH</a>
-  </header>
-);
+const SIDEBAR_ITEMS = [
+  { icon: '\u2302', label: 'Home', href: '#/' },
+  null,
+  { icon: '\u266B', label: 'Performances', href: '#/performances' },
+  { icon: '\u263A', label: 'Singers', href: '#/singers' },
+  { icon: '\u266C', label: 'Works', href: '#/repertoire' },
+  { icon: '\u2394', label: 'Composers', href: '#/composers' },
+  { icon: '\u2637', label: 'Network', href: '#/network' },
+  null,
+  { icon: '\u29C9', label: 'Archive', href: '#/archive' },
+  { icon: '\u2315', label: 'Search', href: '#/search' },
+  null,
+  { icon: '\u270E', label: 'Contribute', href: '#/contribute' },
+  { icon: '\u2139', label: 'About', href: '#/about' }
+];
+
+function Sidebar({ open, onClose }) {
+  return React.createElement('div', null,
+    // Overlay
+    open && React.createElement('div', {
+      onClick: onClose,
+      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 900, transition: 'opacity 0.3s' }
+    }),
+    // Panel
+    React.createElement('nav', {
+      style: {
+        position: 'fixed', top: 0, left: open ? 0 : -280, width: 260, height: '100vh',
+        background: '#1f1d1b', borderRight: '1px solid var(--rule)', zIndex: 901,
+        transition: 'left 0.3s ease', overflowY: 'auto', padding: '24px 0'
+      }
+    },
+      // Close button
+      React.createElement('div', { style: { padding: '0 24px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+        React.createElement('a', { href: '#/', className: 'display', style: { fontSize: 18, textDecoration: 'none', color: 'var(--ink)' } },
+          'KO', React.createElement('span', { className: 'coral' }, 'VOX')
+        ),
+        React.createElement('button', {
+          onClick: onClose,
+          style: { background: 'transparent', border: 'none', color: 'var(--ink-soft)', fontSize: 20, cursor: 'pointer', padding: 4 }
+        }, '\u2715')
+      ),
+      // Items
+      SIDEBAR_ITEMS.map((item, i) =>
+        item === null
+          ? React.createElement('div', { key: 'sep-' + i, style: { height: 1, background: 'var(--rule)', margin: '8px 24px' } })
+          : React.createElement('a', {
+              key: item.label, href: item.href, onClick: onClose,
+              style: {
+                display: 'flex', alignItems: 'center', gap: 16, padding: '14px 24px',
+                textDecoration: 'none', color: 'var(--ink-soft)', fontSize: 15,
+                fontFamily: 'Pretendard', transition: 'background 0.15s'
+              },
+              onMouseEnter: function(e) { e.currentTarget.style.background = 'rgba(245,123,107,0.08)'; e.currentTarget.style.color = 'var(--ink)'; },
+              onMouseLeave: function(e) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-soft)'; }
+            },
+              React.createElement('span', { style: { fontSize: 18, width: 24, textAlign: 'center' } }, item.icon),
+              item.label
+          )
+      ),
+      // Footer
+      React.createElement('div', { style: { padding: '24px 24px 16px', marginTop: 16, borderTop: '1px solid var(--rule)' } },
+        React.createElement('div', { className: 'mono', style: { fontSize: 10, color: 'var(--ink-soft)', lineHeight: 1.8 } },
+          'KOVOX \u00B7 2026', React.createElement('br'), 'A Living Archive of Korean Recitals'
+        )
+      )
+    )
+  );
+}
+
+const Nav2 = ({ active = '' }) => {
+  const [sidebarOpen, setSidebarOpen] = useS(false);
+  return React.createElement(React.Fragment, null,
+    React.createElement(Sidebar, { open: sidebarOpen, onClose: () => setSidebarOpen(false) }),
+    React.createElement('header', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 56px', borderBottom: '1px solid var(--rule)' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20 } },
+        React.createElement('button', {
+          onClick: () => setSidebarOpen(true),
+          style: { background: 'transparent', border: 'none', color: 'var(--ink-soft)', fontSize: 22, cursor: 'pointer', padding: 0, lineHeight: 1 }
+        }, '\u2630'),
+        React.createElement('a', { href: '#/', className: 'display', style: { fontSize: 20, textDecoration: 'none', color: 'var(--ink)' } },
+          'KO', React.createElement('span', { className: 'coral' }, 'VOX')
+        )
+      ),
+      React.createElement('nav', { style: { display: 'flex', gap: 32, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' } },
+        NAV_LINKS.map(x =>
+          React.createElement('a', { key: x.label, href: x.href, style: { color: active === x.label ? 'var(--coral)' : 'var(--ink-soft)', textDecoration: 'none' } }, x.label)
+        )
+      ),
+      React.createElement('a', { href: '#/search', className: 'mono', style: { fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'none', cursor: 'pointer' } }, '\u2315 SEARCH')
+    )
+  );
+};
 
 const PageHeader = ({ kicker, title, count, sub }) => (
   <section style={{ padding: '60px 56px 40px' }}>
