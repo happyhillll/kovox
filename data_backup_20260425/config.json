@@ -1,0 +1,125 @@
+{
+  "project": {
+    "name": "recital museum",
+    "quality": 1
+  },
+  "loader": {
+    "info": "data/info.md",
+    "timeline": "data/timeline.csv",
+    "items": "data/kovox_converted.csv",
+    "voicetype": "data/voicetype.csv",
+    "layouts": [
+      {
+        "title": "Time"
+      },
+      {
+        "title": "Similarity",
+        "url": "data/tsne.csv",
+        "scale": 1.0
+      }
+    ],
+
+    "textures": {
+      "medium": {
+        "size": 256,
+        "url": "data/sprites/spritesheet.json"
+      },
+      "detail": {
+        "size": 1024,
+        "url": "data/1024/"
+      },
+      "big": {
+        "size": 4096,
+        "url": "data/4096/"
+      }
+    }
+  },
+  "style": {
+    "fontColor": "#ed6f63",
+    "fontColorActive": "#eae2cb",
+    "fontBackground": "#295b71",
+    "textShadow": "3px 3px 0px #101820",
+    "canvasBackground": "#2D2926",
+    "timelineBackground": "#fff9eb",
+    "timelineFontColor": "#000",
+    "backgroundHeader": "#035151",
+    "fontColorHeader": "#f8774f",
+    "detailBackground": "#EEE",
+    "infoBackground": "#33444c",
+    "infoFontColor": "#fff",
+    "searchbarBackground": "#ed6f63"
+  },
+  "projection": {
+    "columns": 7
+  },
+  "detail": {
+    "structure": [
+      {
+        "name": "Title",
+        "source": "_PerformanceTitle",
+        "display": "wide",
+        "type": "markdown"
+      },
+      {
+        "name": "Performing Date",
+        "source": "_PerformanceDate",
+        "display": "column",
+        "type": "text"
+      },
+      {
+        "name": "Venue",
+        "source": "_Venue",
+        "display": "column",
+        "type": "text"
+      },
+      {
+        "name": "Running Time",
+        "source": "_PerformanceTime(Interval)",
+        "display": "column",
+        "type": "text"
+      },
+      {
+        "name": "Ticket URL",
+        "source": "_티켓 사이트 주소",
+        "display": "column",
+        "type": "text"
+      },
+      {
+        "name": "Program",
+        "source": "_Program",
+        "display": "column",
+        "type": "markdown"
+      },
+      {
+        "name": "Singer",
+        "source": "_SingerAbstract",
+        "display": "column",
+        "type": "markdown"
+      },
+      {
+        "name": "Accompanist",  
+        "source": "_반주자 이름_2",
+        "display": "column",
+        "type": "markdown"
+      },
+      {
+        "name": "Accompanist Profile",  
+        "source": "_반주자 프로필_2",
+        "display": "column",
+        "type": "markdown"
+      },
+      {
+        "name": "Organizer",  
+        "source": "_Organizer",
+        "display": "column",
+        "type": "markdown"
+      },
+      {
+        "name": "Sponsor",  
+        "source": "_SponsorOrganization",
+        "display": "column",
+        "type": "markdown"
+      }
+    ]
+  }
+}
