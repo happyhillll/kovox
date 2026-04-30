@@ -369,7 +369,7 @@ function SimilarPrograms({ perfId }) {
       {similar.map(({ perf: s, sharedCount, sharedTitles }) => {
         const idNum = s.performance_id.replace('PERF_', '');
         return (
-          <a key={s.performance_id} href={'#/detail/' + idNum} style={{ display: 'block', padding: '18px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
+          <a key={s.performance_id} href={'#/detail/' + idNum} className="kv-link" style={{ display: 'block', padding: '18px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 200px 40px', gap: 24, alignItems: 'baseline' }}>
               <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{s.performance_date}</span>
               <span className="display-kr" style={{ fontSize: 20 }}>{s.performance_title}</span>

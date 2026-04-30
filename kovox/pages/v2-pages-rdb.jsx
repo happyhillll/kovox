@@ -2010,7 +2010,7 @@ function DetailProgramme({ perfId }) {
             <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● SINGER</div>
             {singers.map(s => (
               <div key={s.person_id} style={{ marginBottom: 16 }}>
-                <a href={'#/singer/' + s.person_id} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+                <a href={'#/singer/' + s.person_id} className="kv-link" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
                   <span className="display-kr" style={{ fontSize: 32 }}>{s.person_name}</span>
                   <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 12 }}>{(s.person_medium || '').toUpperCase()}</span>
                 </a>
@@ -2025,7 +2025,7 @@ function DetailProgramme({ perfId }) {
           <div>
             <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● ACCOMPANIST</div>
             {accompanists.map(a => (
-              <a key={a.person_id} href={'#/person/' + a.person_id} style={{ display: 'block', textDecoration: 'none', color: 'inherit', marginBottom: 8 }}>
+              <a key={a.person_id} href={'#/person/' + a.person_id} className="kv-link" style={{ display: 'block', textDecoration: 'none', color: 'inherit', marginBottom: 8 }}>
                 <span className="display-kr" style={{ fontSize: 32 }}>{a.person_name}</span>
                 <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 12 }}>{(a.person_medium || '').toUpperCase()}</span>
               </a>
@@ -2048,14 +2048,14 @@ function DetailProgramme({ perfId }) {
             }
             return (
               <div key={gi} style={{ marginBottom: 28 }}>
-                <div style={{ padding: '12px 0', borderTop: '1px solid var(--rule)', display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                <a href={'#/composer/' + encodeURIComponent(g.name)} className="kv-link" style={{ padding: '12px 0', borderTop: '1px solid var(--rule)', display: 'flex', alignItems: 'baseline', gap: 12, textDecoration: 'none', color: 'inherit' }}>
                   <span className="display" style={{ fontSize: 22, letterSpacing: '-0.02em' }}>{g.name.toUpperCase()}</span>
                   {g.birthYear && (
                     <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)' }}>({g.birthYear}–{g.deathYear || ''})</span>
                   )}
-                </div>
+                </a>
                 {g.works.map((w, wi) => (
-                  <a key={wi} href={'#/work/' + w.work_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 0 8px 24px', textDecoration: 'none', color: 'inherit' }}>
+                  <a key={wi} href={'#/work/' + w.work_id} className="kv-link" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 0 8px 24px', textDecoration: 'none', color: 'inherit' }}>
                     <span style={{ fontSize: 15 }}>{w.mb_title || w.title_variant}</span>
                     <span className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)' }}>{langName(w.mb_language)}</span>
                   </a>
