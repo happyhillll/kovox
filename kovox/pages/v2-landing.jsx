@@ -81,15 +81,28 @@ const NAV_ITEMS = [
   { label: 'About', href: '#/about' }
 ];
 
-const NavL = () => (
-  <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 56px', borderBottom: '1px solid var(--rule)' }}>
-    <a href="#/" className="display" style={{ fontSize: 20, color: 'var(--ink)', textDecoration: 'none' }}>KO<span style={{ color: 'var(--coral)' }}>VOX</span></a>
-    <nav style={{ display: 'flex', gap: 32, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-      {NAV_ITEMS.map(x => <a key={x.label} href={x.href} style={{ color: 'var(--ink-soft)', textDecoration: 'none' }}>{x.label}</a>)}
-    </nav>
-    <a href="#/search" className="mono" style={{ fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'none', cursor: 'pointer' }}>⌕ SEARCH</a>
-  </header>
-);
+function NavL() {
+  const [sidebarOpen, setSidebarOpen] = useSL(false);
+  const SidebarComp = window.KoVoxPages && window.KoVoxPages.Sidebar;
+  return React.createElement(React.Fragment, null,
+    SidebarComp && React.createElement(SidebarComp, { open: sidebarOpen, onClose: () => setSidebarOpen(false) }),
+    React.createElement('header', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 56px', borderBottom: '1px solid var(--rule)' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20 } },
+        React.createElement('button', {
+          onClick: () => setSidebarOpen(true),
+          style: { background: 'transparent', border: 'none', color: 'var(--ink-soft)', fontSize: 22, cursor: 'pointer', padding: 0, lineHeight: 1 }
+        }, '\u2630'),
+        React.createElement('a', { href: '#/', className: 'display', style: { fontSize: 20, color: 'var(--ink)', textDecoration: 'none' } },
+          'KO', React.createElement('span', { style: { color: 'var(--coral)' } }, 'VOX')
+        )
+      ),
+      React.createElement('nav', { style: { display: 'flex', gap: 32, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' } },
+        NAV_ITEMS.map(x => React.createElement('a', { key: x.label, href: x.href, style: { color: 'var(--ink-soft)', textDecoration: 'none' } }, x.label))
+      ),
+      React.createElement('a', { href: '#/search', className: 'mono', style: { fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'none', cursor: 'pointer' } }, '\u2315 SEARCH')
+    )
+  );
+}
 
 function Landing() {
   const RDB = window.KOVOX_RDB;

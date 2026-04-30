@@ -562,4 +562,4 @@ function About() {
   );
 }
 
-window.KoVoxPages = { Archive, Composers, Singers, Calendar, Detail, Contribute, Editorial, About };
+window.KoVoxPages = { Archive, Composers, Singers, Calendar, Detail, Contribute, Editorial, About, Sidebar };
