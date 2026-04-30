@@ -492,6 +492,42 @@ function SingerProfile({ personId }) {
     setEditingEpk(false);
   }
 
+  // Edit request state
+  const [editReqOpen, setEditReqOpen] = useStateR(false);
+  const [editReqField, setEditReqField] = useStateR('biography');
+  const [editReqValue, setEditReqValue] = useStateR('');
+  const [editReqNote, setEditReqNote] = useStateR('');
+  const [editReqSending, setEditReqSending] = useStateR(false);
+  const [editReqSubmitted, setEditReqSubmitted] = useStateR(false);
+  const [editReqError, setEditReqError] = useStateR('');
+
+  async function submitEditRequest() {
+    if (!editReqValue.trim()) { setEditReqError('수정 내용을 입력해주세요.'); return; }
+    setEditReqSending(true);
+    setEditReqError('');
+    try {
+      const currentVal = editReqField === 'biography' ? (person.person_profile || '')
+        : editReqField === 'name' ? person.person_name
+        : editReqField === 'medium' ? (person.person_medium || '')
+        : editReqField === 'isni' ? (person.person_isni || '') : '';
+      const { error } = await supabaseClient.from('edit_requests').insert([{
+        person_id: personId,
+        person_name: person.person_name,
+        field: editReqField,
+        current_value: currentVal || null,
+        suggested_value: editReqValue.trim(),
+        requester_note: editReqNote.trim() || null
+      }]);
+      if (error) throw error;
+      setEditReqSubmitted(true);
+      setEditReqValue('');
+      setEditReqNote('');
+    } catch (e) {
+      setEditReqError('전송 실패: ' + (e.message || e));
+    }
+    setEditReqSending(false);
+  }
+
   // Career span
   const careerSpan = useMemoR(() => {
     if (performances.length === 0) return null;
@@ -658,9 +694,88 @@ function SingerProfile({ personId }) {
       {/* Biography */}
       {person.person_profile && (
         <section style={{ padding: '32px 56px', borderTop: '1px solid var(--rule)' }}>
-          <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● BIOGRAPHY</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em' }}>● BIOGRAPHY</div>
+            <button onClick={() => setEditReqOpen(true)} className="mono" style={{ background: 'transparent', border: '1px solid var(--rule)', color: 'var(--ink-soft)', padding: '6px 14px', fontSize: 10, cursor: 'pointer', letterSpacing: '0.1em' }}>
+              ✎ 정보 수정 요청
+            </button>
+          </div>
           <p style={{ fontSize: 16, color: 'var(--ink-soft)', lineHeight: 1.8, maxWidth: 900 }}>{person.person_profile}</p>
         </section>
+      )}
+      {!person.person_profile && (
+        <section style={{ padding: '32px 56px', borderTop: '1px solid var(--rule)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em' }}>● BIOGRAPHY</div>
+            <button onClick={() => setEditReqOpen(true)} className="mono" style={{ background: 'transparent', border: '1px solid var(--rule)', color: 'var(--ink-soft)', padding: '6px 14px', fontSize: 10, cursor: 'pointer', letterSpacing: '0.1em' }}>
+              ✎ 정보 등록 요청
+            </button>
+          </div>
+          <p style={{ fontSize: 14, color: 'var(--ink-soft)', fontStyle: 'italic' }}>등록된 바이오그래피가 없습니다.</p>
+        </section>
+      )}
+
+      {/* Edit Request Modal */}
+      {editReqOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { if (e.target === e.currentTarget) setEditReqOpen(false); }}>
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--rule)', padding: 40, maxWidth: 640, width: '90%', maxHeight: '80vh', overflow: 'auto' }}>
+            <div className="display coral" style={{ fontSize: 28, marginBottom: 8 }}>EDIT REQUEST</div>
+            <p className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.05em', marginBottom: 24 }}>
+              {person.person_name}의 정보 수정을 요청합니다. 검토 후 반영됩니다.
+            </p>
+
+            {editReqSubmitted ? (
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                <div className="display coral" style={{ fontSize: 36, marginBottom: 12 }}>SUBMITTED</div>
+                <p style={{ fontSize: 15, color: 'var(--ink-soft)' }}>수정 요청이 접수되었습니다.</p>
+                <button onClick={() => { setEditReqOpen(false); setEditReqSubmitted(false); }} className="kv2-btn" style={{ marginTop: 20, padding: '10px 24px', fontSize: 13 }}>닫기</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>수정 항목 *</label>
+                  <select value={editReqField} onChange={e => setEditReqField(e.target.value)} style={{ width: '100%', padding: '12px 14px', fontSize: 14, background: 'var(--bg-deep)', border: '1px solid var(--rule)', color: 'var(--ink)', fontFamily: 'Pretendard', outline: 'none' }}>
+                    <option value="biography">바이오그래피 (Biography)</option>
+                    <option value="name">이름</option>
+                    <option value="medium">성부 / 악기</option>
+                    <option value="isni">ISNI</option>
+                    <option value="other">기타</option>
+                  </select>
+                </div>
+
+                {editReqField === 'biography' && person.person_profile && (
+                  <div style={{ marginBottom: 16 }}>
+                    <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>현재 내용</label>
+                    <div style={{ padding: 14, background: 'var(--bg-deep)', border: '1px solid var(--rule)', fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6, maxHeight: 120, overflow: 'auto' }}>{person.person_profile}</div>
+                  </div>
+                )}
+
+                <div style={{ marginBottom: 16 }}>
+                  <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>수정 내용 *</label>
+                  <textarea value={editReqValue} onChange={e => setEditReqValue(e.target.value)} rows={8}
+                    placeholder={editReqField === 'biography' ? '수정된 바이오그래피 전체를 입력해주세요...' : '수정할 내용을 입력해주세요...'}
+                    style={{ width: '100%', padding: '12px 14px', fontSize: 14, background: 'var(--bg-deep)', border: '1px solid var(--rule)', color: 'var(--ink)', fontFamily: 'Pretendard', outline: 'none', resize: 'vertical' }} />
+                </div>
+
+                <div style={{ marginBottom: 24 }}>
+                  <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>비고 (선택)</label>
+                  <input value={editReqNote} onChange={e => setEditReqNote(e.target.value)}
+                    placeholder="수정 이유, 출처 등"
+                    style={{ width: '100%', padding: '12px 14px', fontSize: 14, background: 'var(--bg-deep)', border: '1px solid var(--rule)', color: 'var(--ink)', fontFamily: 'Pretendard', outline: 'none' }} />
+                </div>
+
+                {editReqError && <p style={{ color: '#e55', fontSize: 13, marginBottom: 12 }}>{editReqError}</p>}
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button onClick={submitEditRequest} disabled={editReqSending} className="kv2-btn" style={{ padding: '12px 28px', fontSize: 13, opacity: editReqSending ? 0.5 : 1 }}>
+                    {editReqSending ? '전송 중...' : '수정 요청 제출'}
+                  </button>
+                  <button onClick={() => setEditReqOpen(false)} className="kv2-btn-ghost" style={{ padding: '12px 28px', fontSize: 13 }}>취소</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Top Composers + Top Works + Partners */}
