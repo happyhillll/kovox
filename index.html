@@ -35,6 +35,13 @@
 <div id="root"></div>
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  window.KOVOX_SUPABASE = supabase.createClient(
+    'https://laqvlnqvxjjmxeeqqfuj.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhcXZsbnF2eGpqbXhlZXFxZnVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODM2MjAsImV4cCI6MjA5MzA1OTYyMH0.sPVUPi8kqYAEPxav9JDZqjHD8CxsdpcAsiq5l2Jyhbc'
+  );
+</script>
 <script src="kovox/data/kovox-data.js"></script>
 <script src="kovox/data/kovox-rdb.js"></script>
 <script type="text/babel" src="kovox/pages/v2-landing.jsx"></script>
