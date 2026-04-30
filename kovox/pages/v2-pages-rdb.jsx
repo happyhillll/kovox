@@ -498,9 +498,10 @@ function SingerProfile({ personId }) {
 
   const isSinger = person.person_role === 'main performer';
   const performances = getPersonPerformances(personId);
-  const topWorks = getPersonWorks(personId).slice(0, 10);
-  const topComposers = getPersonComposers(personId).slice(0, 8);
-  const partners = getPersonPartners(personId).slice(0, 10);
+  const allWorks = getPersonWorks(personId);
+  const topWorks = allWorks.slice(0, 10);
+  const topComposers = getPersonComposers(personId);
+  const partners = getPersonPartners(personId);
   const perfCount = performances.length;
 
   const backLabel = isSinger ? 'SINGERS' : 'NETWORK';
@@ -510,6 +511,75 @@ function SingerProfile({ personId }) {
     : (person.person_role || '').toUpperCase() + (person.person_medium ? ' · ' + person.person_medium.toUpperCase() : '');
   const partnerLabel = isSinger ? 'ACCOMPANISTS' : 'SINGERS';
 
+  // EPK: localStorage for media links and contact
+  const epkKey = 'kovox_epk_' + personId;
+  const [epkData, setEpkData] = useStateR(() => {
+    try { return JSON.parse(localStorage.getItem(epkKey)) || {}; } catch { return {}; }
+  });
+  const [editingEpk, setEditingEpk] = useStateR(false);
+  const [epkForm, setEpkForm] = useStateR({ youtube: epkData.youtube || '', website: epkData.website || '', email: epkData.email || '', phone: epkData.phone || '', management: epkData.management || '', photoUrl: epkData.photoUrl || '' });
+
+  function saveEpk() {
+    const data = { ...epkForm };
+    setEpkData(data);
+    localStorage.setItem(epkKey, JSON.stringify(data));
+    setEditingEpk(false);
+  }
+
+  // Career span
+  const careerSpan = useMemoR(() => {
+    if (performances.length === 0) return null;
+    const dates = performances.map(p => p.performance_date).filter(Boolean).sort();
+    return { first: dates[0], last: dates[dates.length - 1] };
+  }, [performances]);
+
+  // Venues
+  const venues = useMemoR(() => {
+    const counts = {};
+    performances.forEach(p => { if (p.venue_name) counts[p.venue_name] = (counts[p.venue_name] || 0) + 1; });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [performances]);
+
+  // Partner mini-network
+  const partnerNetRef = useRefR(null);
+  useEffectR(() => {
+    if (!partnerNetRef.current || partners.length === 0) return;
+    const svg = d3.select(partnerNetRef.current);
+    svg.selectAll('*').remove();
+    const w = partnerNetRef.current.clientWidth, h = 300;
+    const nodes = [{ id: personId, name: person.person_name, type: 'self', size: perfCount }];
+    const links = [];
+    partners.slice(0, 15).forEach(({ person: p, count }) => {
+      nodes.push({ id: p.person_id, name: p.person_name, type: 'partner', size: count });
+      links.push({ source: 0, target: nodes.length - 1, value: count });
+    });
+    const sim = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).distance(80))
+      .force('charge', d3.forceManyBody().strength(-200))
+      .force('center', d3.forceCenter(w / 2, h / 2))
+      .force('collision', d3.forceCollide().radius(d => Math.sqrt(d.size) * 3 + 10));
+    const g = svg.append('g');
+    svg.call(d3.zoom().scaleExtent([0.5, 3]).on('zoom', (e) => g.attr('transform', e.transform)));
+    const link = g.append('g').selectAll('line').data(links).enter().append('line')
+      .style('stroke', '#555').style('stroke-opacity', 0.4).style('stroke-width', d => Math.min(d.value * 1.5, 6));
+    const node = g.append('g').selectAll('circle').data(nodes).enter().append('circle')
+      .attr('r', d => d.type === 'self' ? 16 : Math.max(Math.sqrt(d.size) * 3, 6))
+      .attr('fill', d => d.type === 'self' ? '#f57b6b' : '#e8c547')
+      .style('cursor', 'pointer')
+      .on('click', (e, d) => { if (d.type === 'partner') window.location.hash = '#/person/' + d.id; });
+    const label = g.append('g').selectAll('text').data(nodes).enter().append('text')
+      .text(d => d.name).style('font-size', d => d.type === 'self' ? '12px' : '10px')
+      .style('fill', d => d.type === 'self' ? '#f4ede2' : '#d4c8a0').style('font-family', 'Pretendard')
+      .style('pointer-events', 'none').attr('dx', d => (d.type === 'self' ? 20 : Math.sqrt(d.size) * 3 + 6)).attr('dy', 3);
+    sim.on('tick', () => {
+      link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      node.attr('cx', d => d.x).attr('cy', d => d.y);
+      label.attr('x', d => d.x).attr('y', d => d.y);
+    });
+  }, [partners]);
+
+  const ytId = epkData.youtube ? (epkData.youtube.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([^?&#]+)/) || [])[1] : null;
+
   return (
     <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
       <Nav2 active={isSinger ? 'Singers' : 'Network'} />
@@ -517,39 +587,109 @@ function SingerProfile({ personId }) {
         <a href={backHref} className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.15em', textDecoration: 'none' }}>← {backLabel}</a>
       </div>
 
-      <section style={{ padding: '60px 56px 40px' }}>
-        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 20 }}>● {roleLabel}</div>
-        <h1 className="display-kr" style={{ fontSize: 96, lineHeight: 0.9, margin: 0, letterSpacing: '-0.03em' }}>{person.person_name}</h1>
-        {person.person_isni && (
-          <a href={person.person_isni} target="_blank" rel="noopener noreferrer" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.1em', textDecoration: 'none', display: 'inline-block', marginTop: 12, border: '1px solid var(--rule)', padding: '6px 12px' }}>
-            ISNI ↗
-          </a>
-        )}
-        <PersonViz personId={personId} />
-        <div style={{ display: 'flex', gap: 48, marginTop: 32, flexWrap: 'wrap' }}>
-          <div>
-            <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>PERFORMANCES</div>
-            <div className="display coral" style={{ fontSize: 56 }}>{perfCount}</div>
+      {/* Hero: Name + Photo + Key Stats */}
+      <section style={{ padding: '60px 56px 40px', display: 'grid', gridTemplateColumns: epkData.photoUrl ? '200px 1fr' : '1fr', gap: 48, alignItems: 'start' }}>
+        {epkData.photoUrl && (
+          <div style={{ width: 200, height: 260, overflow: 'hidden', background: '#111' }}>
+            <img src={epkData.photoUrl} alt={person.person_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
-          {isSinger && (
+        )}
+        <div>
+          <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 12 }}>● DIGITAL EPK · {roleLabel}</div>
+          <h1 className="display-kr" style={{ fontSize: 96, lineHeight: 0.9, margin: 0, letterSpacing: '-0.03em' }}>{person.person_name}</h1>
+          <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            {person.person_isni && (
+              <a href={person.person_isni} target="_blank" rel="noopener noreferrer" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.1em', textDecoration: 'none', border: '1px solid var(--rule)', padding: '5px 10px' }}>ISNI ↗</a>
+            )}
+            {epkData.website && (
+              <a href={epkData.website} target="_blank" rel="noopener noreferrer" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', textDecoration: 'none', border: '1px solid var(--rule)', padding: '5px 10px' }}>WEBSITE ↗</a>
+            )}
+            {epkData.email && (
+              <a href={'mailto:' + epkData.email} className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', textDecoration: 'none', border: '1px solid var(--rule)', padding: '5px 10px' }}>{epkData.email}</a>
+            )}
+            {epkData.phone && (
+              <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', border: '1px solid var(--rule)', padding: '5px 10px' }}>{epkData.phone}</span>
+            )}
+            {epkData.management && (
+              <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', border: '1px solid var(--rule)', padding: '5px 10px' }}>MGT: {epkData.management}</span>
+            )}
+          </div>
+          {/* Key stats row */}
+          <div style={{ display: 'flex', gap: 40, marginTop: 28, flexWrap: 'wrap' }}>
             <div>
-              <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>WORKS PERFORMED</div>
-              <div className="display coral" style={{ fontSize: 56 }}>{getPersonWorks(personId).length}</div>
+              <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>PERFORMANCES</div>
+              <div className="display coral" style={{ fontSize: 48 }}>{perfCount}</div>
             </div>
-          )}
-          {isSinger && (
+            {isSinger && (
+              <div>
+                <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>WORKS</div>
+                <div className="display coral" style={{ fontSize: 48 }}>{allWorks.length}</div>
+              </div>
+            )}
             <div>
               <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>COMPOSERS</div>
-              <div className="display coral" style={{ fontSize: 56 }}>{getPersonComposers(personId).length}</div>
+              <div className="display coral" style={{ fontSize: 48 }}>{topComposers.length}</div>
             </div>
-          )}
-          <div>
-            <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>{partnerLabel}</div>
-            <div className="display coral" style={{ fontSize: 56 }}>{partners.length}</div>
+            <div>
+              <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>{partnerLabel}</div>
+              <div className="display coral" style={{ fontSize: 48 }}>{partners.length}</div>
+            </div>
+            {careerSpan && (
+              <div>
+                <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>CAREER</div>
+                <div className="display" style={{ fontSize: 24, marginTop: 8 }}>{careerSpan.first.slice(0, 4)} — {careerSpan.last.slice(0, 4)}</div>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
+      {/* Edit EPK button */}
+      <section style={{ padding: '0 56px 16px' }}>
+        <button onClick={() => setEditingEpk(!editingEpk)} className="mono" style={{ background: 'transparent', border: '1px solid var(--rule)', color: 'var(--ink-soft)', padding: '8px 16px', fontSize: 11, cursor: 'pointer', letterSpacing: '0.1em' }}>
+          {editingEpk ? '▲ 닫기' : '✎ EPK 정보 편집'}
+        </button>
+      </section>
+
+      {editingEpk && (
+        <section style={{ padding: '0 56px 32px' }}>
+          <div style={{ padding: 20, background: 'var(--bg-deep)', border: '1px solid var(--rule)', maxWidth: 700 }}>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', marginBottom: 12 }}>프로필 사진, 연락처, 미디어 링크를 추가하세요 (브라우저에 저장)</div>
+            {[
+              ['프로필 사진 URL', 'photoUrl', 'https://...'],
+              ['YouTube 링크', 'youtube', 'https://youtube.com/watch?v=...'],
+              ['웹사이트', 'website', 'https://...'],
+              ['이메일', 'email', 'email@example.com'],
+              ['전화번호', 'phone', '010-0000-0000'],
+              ['매니지먼트', 'management', '소속사/매니저']
+            ].map(([label, key, ph]) => (
+              <div key={key} style={{ marginBottom: 8 }}>
+                <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', display: 'block', marginBottom: 4 }}>{label}</label>
+                <input value={epkForm[key]} onChange={e => setEpkForm(f => ({ ...f, [key]: e.target.value }))}
+                  placeholder={ph} style={{ width: '100%', padding: '10px 14px', fontSize: 14, background: '#1f1d1b', border: '1px solid var(--rule)', color: 'var(--ink)', fontFamily: 'Pretendard', outline: 'none' }} />
+              </div>
+            ))}
+            <button onClick={saveEpk} className="kv2-btn" style={{ marginTop: 12, padding: '10px 24px', fontSize: 13, border: 'none', cursor: 'pointer' }}>저장</button>
+          </div>
+        </section>
+      )}
+
+      {/* Visualizations */}
+      <section style={{ padding: '16px 56px 32px', borderTop: '1px solid var(--rule)' }}>
+        <PersonViz personId={personId} />
+      </section>
+
+      {/* YouTube embed */}
+      {ytId && (
+        <section style={{ padding: '32px 56px', borderTop: '1px solid var(--rule)' }}>
+          <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● MEDIA</div>
+          <div style={{ position: 'relative', width: '100%', maxWidth: 720, paddingBottom: '405px', background: '#000' }}>
+            <iframe src={'https://www.youtube.com/embed/' + ytId} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+          </div>
+        </section>
+      )}
+
+      {/* Biography */}
       {person.person_profile && (
         <section style={{ padding: '32px 56px', borderTop: '1px solid var(--rule)' }}>
           <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● BIOGRAPHY</div>
@@ -557,15 +697,16 @@ function SingerProfile({ personId }) {
         </section>
       )}
 
-      <section style={{ padding: '40px 56px', borderTop: '1px solid var(--rule)', display: 'grid', gridTemplateColumns: partners.length > 0 ? '1fr 1fr' : '1fr', gap: 64 }}>
+      {/* Top Composers + Top Works + Partners */}
+      <section style={{ padding: '40px 56px', borderTop: '1px solid var(--rule)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 48 }}>
         {isSinger && topComposers.length > 0 && (
           <div>
             <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● TOP COMPOSERS</div>
-            {topComposers.map(([name, count]) => (
-              <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 0', borderTop: '1px solid var(--rule)' }}>
-                <span className="display" style={{ fontSize: 22 }}>{name.toUpperCase()}</span>
+            {topComposers.slice(0, 8).map(([name, count]) => (
+              <a key={name} href={'#/composer/' + encodeURIComponent(name)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
+                <span className="display" style={{ fontSize: 20 }}>{name.toUpperCase()}</span>
                 <span className="mono coral" style={{ fontSize: 13 }}>{count}</span>
-              </div>
+              </a>
             ))}
           </div>
         )}
@@ -575,7 +716,7 @@ function SingerProfile({ personId }) {
             {topWorks.map(({ work, count }) => (
               <a key={work.work_id} href={'#/work/' + work.work_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
                 <div>
-                  <div style={{ fontSize: 16 }}>{work.mb_title || work.title_variant}</div>
+                  <div style={{ fontSize: 15 }}>{work.mb_title || work.title_variant}</div>
                   <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}>{work.mb_composer || ''}</div>
                 </div>
                 <span className="mono coral" style={{ fontSize: 13 }}>{count}</span>
@@ -586,10 +727,10 @@ function SingerProfile({ personId }) {
         {partners.length > 0 && (
           <div>
             <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● {isSinger ? 'ACCOMPANIED BY' : 'PERFORMED WITH'}</div>
-            {partners.map(({ person: partner, count }) => (
+            {partners.slice(0, 10).map(({ person: partner, count }) => (
               <a key={partner.person_id} href={'#/person/' + partner.person_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
                 <div>
-                  <span className="display-kr" style={{ fontSize: 20 }}>{partner.person_name}</span>
+                  <span className="display-kr" style={{ fontSize: 18 }}>{partner.person_name}</span>
                   <span className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', marginLeft: 8 }}>{(partner.person_medium || '').toUpperCase()}</span>
                 </div>
                 <span className="mono coral" style={{ fontSize: 13 }}>{count}x</span>
@@ -599,6 +740,30 @@ function SingerProfile({ personId }) {
         )}
       </section>
 
+      {/* Partner network visualization */}
+      {partners.length > 0 && (
+        <section style={{ padding: '40px 56px', borderTop: '1px solid var(--rule)' }}>
+          <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● {partnerLabel} NETWORK</div>
+          <svg ref={partnerNetRef} style={{ width: '100%', height: 300, background: 'var(--bg-deep)', border: '1px solid var(--rule)' }} />
+        </section>
+      )}
+
+      {/* Top venues */}
+      {venues.length > 0 && (
+        <section style={{ padding: '40px 56px', borderTop: '1px solid var(--rule)' }}>
+          <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● VENUES</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+            {venues.slice(0, 12).map(([name, count]) => (
+              <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 0', borderTop: '1px solid var(--rule)' }}>
+                <span style={{ fontSize: 15 }}>{name}</span>
+                <span className="mono coral" style={{ fontSize: 13 }}>{count}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* All performances */}
       <section style={{ padding: '40px 56px 80px', borderTop: '1px solid var(--rule)' }}>
         <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● ALL PERFORMANCES ({perfCount})</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 24 }}>
