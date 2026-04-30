@@ -20,6 +20,7 @@ const SIDEBAR_ITEMS = [
   { icon: '\u2394', label: 'Composers', href: '#/composers' },
   { icon: '\u2637', label: 'Network', href: '#/network' },
   null,
+  { icon: '\uD83D\uDCC5', label: 'Calendar', href: '#/calendar' },
   { icon: '\u29C9', label: 'Archive', href: '#/archive' },
   { icon: '\u2315', label: 'Search', href: '#/search' },
   null,

@@ -2516,6 +2516,261 @@ function ReviewSection({ perfId }) {
   );
 }
 
+/* ================= CALENDAR PAGE ================= */
+function CalendarPage() {
+  const today = new Date();
+  const [viewYear, setViewYear] = useStateR(today.getFullYear());
+  const [viewMonth, setViewMonth] = useStateR(today.getMonth()); // 0-indexed
+  const [selectedDate, setSelectedDate] = useStateR(null);
+
+  // Follow system
+  const followKey = 'kovox_follows';
+  const [follows, setFollows] = useStateR(() => {
+    try { return JSON.parse(localStorage.getItem(followKey)) || { singers: [], composers: [], venues: [] }; } catch { return { singers: [], composers: [], venues: [] }; }
+  });
+  const [showFollowPanel, setShowFollowPanel] = useStateR(false);
+  const [followSearch, setFollowSearch] = useStateR('');
+
+  function toggleFollow(type, value) {
+    setFollows(prev => {
+      const updated = { ...prev };
+      if (updated[type].includes(value)) {
+        updated[type] = updated[type].filter(v => v !== value);
+      } else {
+        updated[type] = [...updated[type], value];
+      }
+      localStorage.setItem(followKey, JSON.stringify(updated));
+      return updated;
+    });
+  }
+
+  // Group performances by date
+  const perfsByDate = useMemoR(() => {
+    const map = {};
+    RDB.performances.forEach(p => {
+      if (!p.performance_date) return;
+      if (!map[p.performance_date]) map[p.performance_date] = [];
+      map[p.performance_date].push(p);
+    });
+    return map;
+  }, []);
+
+  // Calendar grid
+  const calendarDays = useMemoR(() => {
+    const firstDay = new Date(viewYear, viewMonth, 1);
+    const lastDay = new Date(viewYear, viewMonth + 1, 0);
+    const startPad = firstDay.getDay(); // 0=Sun
+    const totalDays = lastDay.getDate();
+    const days = [];
+    for (let i = 0; i < startPad; i++) days.push(null);
+    for (let d = 1; d <= totalDays; d++) {
+      const dateStr = viewYear + '-' + String(viewMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      days.push({ day: d, date: dateStr, perfs: perfsByDate[dateStr] || [] });
+    }
+    return days;
+  }, [viewYear, viewMonth, perfsByDate]);
+
+  const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
+  // Selected date performances
+  const selectedPerfs = selectedDate ? (perfsByDate[selectedDate] || []) : [];
+
+  // Followed upcoming performances
+  const followedPerfs = useMemoR(() => {
+    const todayStr = today.toISOString().slice(0, 10);
+    return RDB.performances.filter(p => {
+      if (!p.performance_date || p.performance_date < todayStr) return false;
+      // Check venue
+      if (follows.venues.includes(p.venue_name)) return true;
+      // Check singer/composer via participation
+      const parts = IX.partByPerf[p.performance_id] || [];
+      const personIds = [...new Set(parts.map(pa => pa.person_id))];
+      for (const pid of personIds) {
+        const person = IX.personById[pid];
+        if (person && person.person_role === 'main performer' && follows.singers.includes(person.person_name)) return true;
+      }
+      // Check composers
+      const progs = IX.progByPerf[p.performance_id] || [];
+      for (const pr of progs) {
+        if (pr.work_id) {
+          const work = IX.workById[pr.work_id];
+          if (work && follows.composers.includes(work.mb_composer)) return true;
+        }
+      }
+      return false;
+    }).sort((a, b) => a.performance_date.localeCompare(b.performance_date)).slice(0, 20);
+  }, [follows]);
+
+  // Follow suggestions
+  const followSuggestions = useMemoR(() => {
+    if (followSearch.length < 2) return { singers: [], composers: [], venues: [] };
+    const q = followSearch.toLowerCase();
+    return {
+      singers: [...new Set(RDB.persons.filter(p => p.person_role === 'main performer' && p.person_name && p.person_name.toLowerCase().includes(q)).map(p => p.person_name))].slice(0, 5),
+      composers: [...new Set(RDB.works.map(w => w.mb_composer).filter(c => c && c.toLowerCase().includes(q)))].slice(0, 5),
+      venues: [...new Set(RDB.performances.map(p => p.venue_name).filter(v => v && v.toLowerCase().includes(q)))].slice(0, 5)
+    };
+  }, [followSearch]);
+
+  const totalFollows = follows.singers.length + follows.composers.length + follows.venues.length;
+
+  return (
+    <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
+      <Nav2 />
+      <PageHeader kicker="CALENDAR" title="CALENDAR" sub="공연 일정을 캘린더로 확인하세요. 성악가, 작곡가, 공연장을 팔로우하면 관련 공연을 모아볼 수 있습니다." />
+
+      <section style={{ padding: '0 56px 40px', display: 'grid', gridTemplateColumns: '1fr 360px', gap: 48 }}>
+        {/* Calendar grid */}
+        <div>
+          {/* Month navigation */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <button onClick={() => { if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); } else setViewMonth(viewMonth - 1); }}
+              className="display" style={{ background: 'transparent', border: 'none', color: 'var(--coral)', fontSize: 24, cursor: 'pointer' }}>←</button>
+            <div className="display coral" style={{ fontSize: 36 }}>{viewYear}. {monthNames[viewMonth]}</div>
+            <button onClick={() => { if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); } else setViewMonth(viewMonth + 1); }}
+              className="display" style={{ background: 'transparent', border: 'none', color: 'var(--coral)', fontSize: 24, cursor: 'pointer' }}>→</button>
+          </div>
+
+          {/* Day headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
+            {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(d => (
+              <div key={d} className="mono" style={{ textAlign: 'center', fontSize: 10, color: 'var(--ink-soft)', padding: '8px 0', letterSpacing: '0.15em' }}>{d}</div>
+            ))}
+          </div>
+
+          {/* Calendar cells */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+            {calendarDays.map((cell, i) => {
+              if (!cell) return <div key={'pad-' + i} style={{ aspectRatio: '1', background: 'var(--bg-deep)' }} />;
+              const hasPerfs = cell.perfs.length > 0;
+              const isSelected = selectedDate === cell.date;
+              const isToday = cell.date === today.toISOString().slice(0, 10);
+              return (
+                <div key={cell.date} onClick={() => setSelectedDate(isSelected ? null : cell.date)}
+                  style={{
+                    aspectRatio: '1', background: isSelected ? 'var(--coral)' : hasPerfs ? 'rgba(245,123,107,0.15)' : 'var(--bg-deep)',
+                    cursor: hasPerfs ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    border: isToday ? '2px solid var(--coral)' : '1px solid transparent', transition: 'background 0.15s'
+                  }}>
+                  <span style={{ fontSize: 16, color: isSelected ? 'var(--bg-deep)' : hasPerfs ? 'var(--ink)' : 'var(--ink-soft)', fontWeight: hasPerfs ? 700 : 400 }}>{cell.day}</span>
+                  {hasPerfs && <span className="mono" style={{ fontSize: 9, color: isSelected ? 'var(--bg-deep)' : 'var(--coral)', marginTop: 2 }}>{cell.perfs.length}</span>}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Selected date performances */}
+          {selectedDate && (
+            <div style={{ marginTop: 24, borderTop: '1px solid var(--rule)', paddingTop: 20 }}>
+              <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● {selectedDate} · {selectedPerfs.length} PERFORMANCES</div>
+              {selectedPerfs.length === 0 && <div style={{ fontSize: 14, color: 'var(--ink-soft)' }}>이 날짜에 등록된 공연이 없습니다.</div>}
+              {selectedPerfs.map(p => {
+                const perfIdNum = p.performance_id.replace('PERF_', '');
+                const parts = IX.partByPerf[p.performance_id] || [];
+                const singer = [...new Set(parts.map(pa => pa.person_id))].map(pid => IX.personById[pid]).find(pe => pe && pe.person_role === 'main performer');
+                return (
+                  <a key={p.performance_id} href={'#/detail/' + perfIdNum} style={{ display: 'block', padding: '16px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
+                    <div className="display-kr" style={{ fontSize: 20 }}>{p.performance_title}</div>
+                    <div style={{ display: 'flex', gap: 16, marginTop: 6, fontSize: 13, color: 'var(--ink-soft)' }}>
+                      <span>{p.venue_name}</span>
+                      {p.start_time && <span>{p.start_time}</span>}
+                      {singer && <span className="coral">{singer.person_name}</span>}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right panel: Follow + Upcoming */}
+        <div>
+          {/* Follow panel */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
+              <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em' }}>● FOLLOWING ({totalFollows})</div>
+              <button onClick={() => setShowFollowPanel(!showFollowPanel)} className="mono" style={{ background: 'transparent', border: '1px solid var(--rule)', color: 'var(--ink-soft)', padding: '6px 12px', fontSize: 10, cursor: 'pointer' }}>
+                {showFollowPanel ? '닫기' : '+ 팔로우'}
+              </button>
+            </div>
+
+            {showFollowPanel && (
+              <div style={{ marginBottom: 16, padding: 16, background: 'var(--bg-deep)', border: '1px solid var(--rule)' }}>
+                <input value={followSearch} onChange={e => setFollowSearch(e.target.value)}
+                  placeholder="성악가, 작곡가, 공연장 검색..."
+                  style={{ width: '100%', padding: '10px 14px', fontSize: 14, background: '#1f1d1b', border: '1px solid var(--rule)', color: 'var(--ink)', fontFamily: 'Pretendard', outline: 'none', marginBottom: 8 }} />
+                {followSuggestions.singers.map(name => (
+                  <div key={'s-' + name} onClick={() => toggleFollow('singers', name)} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', cursor: 'pointer', borderTop: '1px solid var(--rule)', fontSize: 14 }}>
+                    <span>{name} <span className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)' }}>SINGER</span></span>
+                    <span className="coral" style={{ fontSize: 12 }}>{follows.singers.includes(name) ? '✓' : '+'}</span>
+                  </div>
+                ))}
+                {followSuggestions.composers.map(name => (
+                  <div key={'c-' + name} onClick={() => toggleFollow('composers', name)} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', cursor: 'pointer', borderTop: '1px solid var(--rule)', fontSize: 14 }}>
+                    <span>{name} <span className="mono" style={{ fontSize: 10, color: '#6bc5f5' }}>COMPOSER</span></span>
+                    <span className="coral" style={{ fontSize: 12 }}>{follows.composers.includes(name) ? '✓' : '+'}</span>
+                  </div>
+                ))}
+                {followSuggestions.venues.map(name => (
+                  <div key={'v-' + name} onClick={() => toggleFollow('venues', name)} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', cursor: 'pointer', borderTop: '1px solid var(--rule)', fontSize: 14 }}>
+                    <span>{name} <span className="mono" style={{ fontSize: 10, color: '#8be88b' }}>VENUE</span></span>
+                    <span className="coral" style={{ fontSize: 12 }}>{follows.venues.includes(name) ? '✓' : '+'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Current follows */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {follows.singers.map(name => (
+                <span key={'fs-' + name} onClick={() => toggleFollow('singers', name)} style={{ padding: '4px 10px', background: 'rgba(245,123,107,0.15)', color: 'var(--coral)', fontSize: 12, cursor: 'pointer', borderRadius: 2 }}>
+                  {name} ×
+                </span>
+              ))}
+              {follows.composers.map(name => (
+                <span key={'fc-' + name} onClick={() => toggleFollow('composers', name)} style={{ padding: '4px 10px', background: 'rgba(107,197,245,0.15)', color: '#6bc5f5', fontSize: 12, cursor: 'pointer', borderRadius: 2 }}>
+                  {name} ×
+                </span>
+              ))}
+              {follows.venues.map(name => (
+                <span key={'fv-' + name} onClick={() => toggleFollow('venues', name)} style={{ padding: '4px 10px', background: 'rgba(139,232,139,0.15)', color: '#8be88b', fontSize: 12, cursor: 'pointer', borderRadius: 2 }}>
+                  {name} ×
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Followed upcoming */}
+          {followedPerfs.length > 0 && (
+            <div>
+              <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● UPCOMING (FOLLOWED)</div>
+              {followedPerfs.map(p => {
+                const perfIdNum = p.performance_id.replace('PERF_', '');
+                return (
+                  <a key={p.performance_id} href={'#/detail/' + perfIdNum} style={{ display: 'block', padding: '12px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
+                    <div className="mono" style={{ fontSize: 11, color: 'var(--coral)' }}>{p.performance_date}</div>
+                    <div style={{ fontSize: 15, marginTop: 2, lineHeight: 1.3 }}>{p.performance_title}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 2 }}>{p.venue_name}</div>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+
+          {/* This month stats */}
+          <div style={{ marginTop: 32, padding: 20, background: 'var(--bg-deep)', border: '1px solid var(--rule)' }}>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', marginBottom: 12 }}>THIS MONTH</div>
+            <div className="display coral" style={{ fontSize: 48 }}>
+              {calendarDays.filter(c => c && c.perfs.length > 0).reduce((s, c) => s + c.perfs.length, 0)}
+            </div>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', marginTop: 4 }}>PERFORMANCES IN {monthNames[viewMonth].toUpperCase()} {viewYear}</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 /* ================= PERFORMANCES LIST ================= */
 function PerformancesList() {
   const [sortBy, setSortBy] = useStateR('date-desc');
@@ -3487,4 +3742,4 @@ function SearchPage() {
 }
 
 /* ================= EXPORTS ================= */
-window.KoVoxPagesRDB = { SingersRDB, SingerProfile, Repertoire, WorkDetail, Network, SearchPage, PerformancesList, DetailProgramme, ComposerDetail, ReviewSection, ContributeRDB };
+window.KoVoxPagesRDB = { SingersRDB, SingerProfile, Repertoire, WorkDetail, Network, SearchPage, PerformancesList, DetailProgramme, ComposerDetail, ReviewSection, ContributeRDB, CalendarPage };
