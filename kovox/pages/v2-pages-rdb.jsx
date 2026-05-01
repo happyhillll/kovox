@@ -853,8 +853,8 @@ function SingerProfile({ personId }) {
             return (
               <a key={p.performance_id} href={'#/detail/' + perfIdNum} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ position: 'relative', background: '#000', aspectRatio: '3/4', overflow: 'hidden', marginBottom: 10 }}>
-                  <img src={'viewer/data/1024/' + perfIdNum + '.jpg'} alt={p.performance_title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    onError={(e) => { e.target.style.display = 'none'; }} />
+                  <img src={'viewer/data/thumbnails/' + perfIdNum + '.gif'} alt={p.performance_title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'viewer/data/1024/' + perfIdNum + '.jpg'; }} />
                 </div>
                 <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)' }}>{p.performance_date}</div>
                 <div className="display-kr" style={{ fontSize: 16, marginTop: 4, lineHeight: 1.3 }}>{p.performance_title}</div>
@@ -2409,8 +2409,8 @@ function ComposerDetail({ composerName }) {
             return (
               <a key={p.performance_id} href={'#/detail/' + perfIdNum} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ position: 'relative', background: '#000', aspectRatio: '3/4', overflow: 'hidden', marginBottom: 8 }}>
-                  <img src={'viewer/data/1024/' + perfIdNum + '.jpg'} alt={p.performance_title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    onError={(e) => { e.target.style.display = 'none'; }} />
+                  <img src={'viewer/data/thumbnails/' + perfIdNum + '.gif'} alt={p.performance_title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'viewer/data/1024/' + perfIdNum + '.jpg'; }} />
                 </div>
                 <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)' }}>{p.performance_date}</div>
                 <div className="display-kr" style={{ fontSize: 14, marginTop: 2, lineHeight: 1.3 }}>{p.performance_title}</div>

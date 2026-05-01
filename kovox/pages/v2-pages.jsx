@@ -308,10 +308,48 @@ function Detail({ perfId }) {
           </div>
         </section>
       )}
+      <DetailImages perfId={p.id} />
       {window.KoVoxPagesRDB && window.KoVoxPagesRDB.DetailProgramme && React.createElement(window.KoVoxPagesRDB.DetailProgramme, { perfId: perfId })}
       <SimilarPrograms perfId={perfId} />
       {window.KoVoxPagesRDB && window.KoVoxPagesRDB.ReviewSection && React.createElement(window.KoVoxPagesRDB.ReviewSection, { perfId: perfId })}
     </div>
+  );
+}
+
+/* ================= DETAIL IMAGES (ephemera) ================= */
+function DetailImages({ perfId }) {
+  const [images, setImages] = React.useState([]);
+  React.useEffect(() => {
+    const candidates = [
+      'viewer/data/1024/' + perfId + '.jpg',
+      'viewer/data/detail_images/' + perfId + '.jpg',
+    ];
+    for (let n = 3; n <= 10; n++) {
+      candidates.push('viewer/data/detail_images/' + perfId + '_0' + n + '.jpg');
+    }
+    let loaded = [];
+    let pending = candidates.length;
+    candidates.forEach((src, i) => {
+      const img = new Image();
+      img.onload = () => { loaded.push({ src, order: i }); if (--pending === 0) finish(); };
+      img.onerror = () => { if (--pending === 0) finish(); };
+      img.src = src;
+    });
+    function finish() {
+      loaded.sort((a, b) => a.order - b.order);
+      setImages(loaded.map(l => l.src));
+    }
+  }, [perfId]);
+  if (images.length === 0) return null;
+  return (
+    <section style={{ padding: '0 56px 40px' }}>
+      <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● DETAIL IMAGES</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+        {images.map((src, i) => (
+          <img key={i} src={src} alt={'Detail ' + (i + 1)} style={{ width: '100%', height: 'auto', display: 'block', border: '1px solid var(--rule)' }} />
+        ))}
+      </div>
+    </section>
   );
 }
 
