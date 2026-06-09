@@ -5,7 +5,9 @@ const D = window.KOVOX_DATA;
 const NAV_LINKS = [
   { label: 'Performances', href: '#/performances' },
   { label: 'Singers', href: '#/singers' },
+  { label: 'Composers', href: '#/composers' },
   { label: 'Works', href: '#/repertoire' },
+  { label: 'Groups', href: '#/groups' },
   { label: 'Network', href: '#/network' },
   { label: 'Archive', href: '#/archive' },
   { label: 'About', href: '#/about' }
@@ -18,6 +20,7 @@ const SIDEBAR_ITEMS = [
   { icon: '\u263A', label: 'Singers', href: '#/singers' },
   { icon: '\u266C', label: 'Works', href: '#/repertoire' },
   { icon: '\u2394', label: 'Composers', href: '#/composers' },
+  { icon: '\u2606', label: 'Groups', href: '#/groups' },
   { icon: '\u2637', label: 'Network', href: '#/network' },
   null,
   { icon: '\uD83D\uDCC5', label: 'Calendar', href: '#/calendar' },
@@ -272,22 +275,37 @@ function Detail({ perfId }) {
               </div>
             ))}
           </div>
-          {(host || sponsor) && (
-            <div style={{ display: 'grid', gridTemplateColumns: host && sponsor ? '1fr 1fr' : '1fr', gap: 16, marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--rule)' }}>
-              {host && (
-                <div>
-                  <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>HOST</div>
-                  <div style={{ fontSize: 15, marginTop: 6, lineHeight: 1.4 }}>{host}</div>
-                </div>
-              )}
-              {sponsor && (
-                <div>
-                  <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>SPONSOR</div>
-                  <div style={{ fontSize: 15, marginTop: 6, lineHeight: 1.4 }}>{sponsor}</div>
-                </div>
-              )}
-            </div>
-          )}
+          {(host || sponsor) && (() => {
+            const RDB = window.KOVOX_RDB;
+            const perfId = rdb ? rdb.performance_id : ('PERF_' + p.id);
+            const pgs = (RDB && RDB.perfGroups) ? RDB.perfGroups.filter(pg => pg.performance_id === perfId) : [];
+            const hostGroups = pgs.filter(pg => pg.role === 'Host').map(pg => RDB.groups && RDB.groups.find(g => g.group_id === pg.group_id)).filter(Boolean);
+            const sponsorGroups = pgs.filter(pg => pg.role === 'Sponsor').map(pg => RDB.groups && RDB.groups.find(g => g.group_id === pg.group_id)).filter(Boolean);
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: host && sponsor ? '1fr 1fr' : '1fr', gap: 16, marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--rule)' }}>
+                {host && (
+                  <div>
+                    <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>HOST</div>
+                    <div style={{ fontSize: 15, marginTop: 6, lineHeight: 1.4 }}>
+                      {hostGroups.length > 0 ? hostGroups.map((g, i) => (
+                        <span key={g.group_id}>{i > 0 && ', '}<a href={'#/group/' + g.group_id} style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>{g.group_name}</a></span>
+                      )) : host}
+                    </div>
+                  </div>
+                )}
+                {sponsor && (
+                  <div>
+                    <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>SPONSOR</div>
+                    <div style={{ fontSize: 15, marginTop: 6, lineHeight: 1.4 }}>
+                      {sponsorGroups.length > 0 ? sponsorGroups.map((g, i) => (
+                        <span key={g.group_id}>{i > 0 && ', '}<a href={'#/group/' + g.group_id} style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>{g.group_name}</a></span>
+                      )) : sponsor}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </section>
       {youtubeId && (

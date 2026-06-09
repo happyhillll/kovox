@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 const Landing = window.KoVoxLanding;
 const { Archive, Composers, Calendar, Detail, Contribute, Editorial, About } = window.KoVoxPages;
-const { SingersRDB, SingerProfile, Repertoire, WorkDetail, Network, SearchPage, PerformancesList, ComposerDetail, ContributeRDB, CalendarPage } = window.KoVoxPagesRDB;
+const { SingersRDB, SingerProfile, Repertoire, WorkDetail, Network, SearchPage, PerformancesList, ComposerDetail, ContributeRDB, CalendarPage, GroupsList, GroupDetail } = window.KoVoxPagesRDB;
 
 function App() {
   const [route, setRoute] = useState(window.location.hash || '#/');
@@ -26,6 +26,7 @@ function App() {
   if (route === '#/contribute') return <ContributeRDB />;
   if (route === '#/about') return <About />;
   if (route === '#/repertoire') return <Repertoire />;
+  if (route === '#/groups') return <GroupsList />;
   if (route === '#/network') return <Network />;
   if (route === '#/search') return <SearchPage />;
   if (route.startsWith('#/composer/')) {
@@ -47,6 +48,10 @@ function App() {
   if (route.startsWith('#/work/')) {
     const id = route.replace('#/work/', '');
     return <WorkDetail workId={id} />;
+  }
+  if (route.startsWith('#/group/')) {
+    const id = route.replace('#/group/', '');
+    return <GroupDetail groupId={id} />;
   }
 
   return <Landing />;

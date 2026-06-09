@@ -150,7 +150,19 @@ function buildIndexes() {
   });
   singers.sort((a, b) => (singerPerfCount[b.person_id] || 0) - (singerPerfCount[a.person_id] || 0));
 
-  return { perfById, workById, personById, progByPerf, progById, partByPerson, partByPerf, partByProgItem, singers, singerPerfCount };
+  // Group indexes
+  const groupById = {};
+  if (RDB.groups) RDB.groups.forEach(g => { groupById[g.group_id] = g; });
+  const perfGroupsByPerf = {};
+  const perfGroupsByGroup = {};
+  if (RDB.perfGroups) RDB.perfGroups.forEach(pg => {
+    if (!perfGroupsByPerf[pg.performance_id]) perfGroupsByPerf[pg.performance_id] = [];
+    perfGroupsByPerf[pg.performance_id].push(pg);
+    if (!perfGroupsByGroup[pg.group_id]) perfGroupsByGroup[pg.group_id] = [];
+    perfGroupsByGroup[pg.group_id].push(pg);
+  });
+
+  return { perfById, workById, personById, progByPerf, progById, partByPerson, partByPerf, partByProgItem, singers, singerPerfCount, groupById, perfGroupsByPerf, perfGroupsByGroup };
 }
 let IX = buildIndexes();
 function rebuildIndexes() { IX = buildIndexes(); }
@@ -3732,5 +3744,209 @@ function SearchPage() {
   );
 }
 
+/* ================= GROUPS LIST ================= */
+function GroupsList() {
+  const [searchQuery, setSearchQuery] = useStateR('');
+  const [roleFilter, setRoleFilter] = useStateR('all');
+
+  const groupsData = useMemoR(() => {
+    if (!RDB.groups) return [];
+    return RDB.groups.map(g => {
+      const rels = IX.perfGroupsByGroup[g.group_id] || [];
+      const perfIds = new Set(rels.map(r => r.performance_id));
+      const roles = new Set(rels.map(r => r.role));
+      return { ...g, perfCount: perfIds.size, roles: [...roles], rels };
+    }).sort((a, b) => b.perfCount - a.perfCount);
+  }, []);
+
+  const filtered = useMemoR(() => {
+    let list = groupsData;
+    if (roleFilter !== 'all') list = list.filter(g => g.roles.includes(roleFilter));
+    if (searchQuery.length >= 2) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(g => (g.group_name || '').toLowerCase().includes(q));
+    }
+    return list;
+  }, [searchQuery, roleFilter, groupsData]);
+
+  return (
+    <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
+      <Nav2 active="Groups" />
+      <PageHeader kicker="INDEX · ORGANIZATIONS" title="GROUPS" count={String(filtered.length)} sub="공연을 주최하고 후원한 모든 단체. 기획사, 대학 동문회, 후원 기관 등을 탐색하세요." />
+
+      <section style={{ padding: '16px 56px', borderBottom: '1px solid var(--rule)' }}>
+        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+          placeholder="단체명 검색..."
+          style={{ width: '100%', padding: '14px 20px', fontSize: 16, background: 'var(--bg-deep)', border: '1px solid var(--rule)', color: 'var(--ink)', fontFamily: 'Pretendard', outline: 'none', marginBottom: 12 }} />
+        <div style={{ display: 'flex', gap: 0, marginBottom: 8 }}>
+          {['all', 'Host', 'Sponsor'].map(r => (
+            <button key={r} onClick={() => setRoleFilter(r)} className="display" style={{ background: roleFilter === r ? 'var(--coral)' : 'transparent', color: roleFilter === r ? 'var(--bg-deep)' : 'var(--ink-soft)', border: 'none', borderRight: '1px solid var(--rule)', padding: '12px 20px', fontSize: 12, cursor: 'pointer', letterSpacing: '0.1em' }}>
+              {r === 'all' ? 'ALL' : r.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section style={{ padding: '24px 56px 80px' }}>
+        {filtered.map((g, i) => (
+          <a key={g.group_id} href={'#/group/' + g.group_id} style={{ display: 'grid', gridTemplateColumns: '50px 1fr 200px 80px', gap: 16, padding: '16px 0', borderTop: '1px solid var(--rule)', alignItems: 'baseline', textDecoration: 'none', color: 'inherit' }}>
+            <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{i + 1}</span>
+            <span className="display-kr" style={{ fontSize: 18 }}>{g.group_name}</span>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)' }}>{g.roles.join(' · ').toUpperCase()}</span>
+            <span className="display coral" style={{ fontSize: 20, textAlign: 'right' }}>{g.perfCount}</span>
+          </a>
+        ))}
+      </section>
+    </div>
+  );
+}
+
+/* ================= GROUP DETAIL ================= */
+function GroupDetail({ groupId }) {
+  const group = IX.groupById[groupId];
+  if (!group) return React.createElement('div', { className: 'kv2', style: { padding: 56 } }, React.createElement(Nav2, null), 'Group not found');
+
+  const rels = IX.perfGroupsByGroup[groupId] || [];
+  const hostedPerfIds = [...new Set(rels.filter(r => r.role === 'Host').map(r => r.performance_id))];
+  const sponsoredPerfIds = [...new Set(rels.filter(r => r.role === 'Sponsor').map(r => r.performance_id))];
+  const allPerfIds = [...new Set(rels.map(r => r.performance_id))];
+
+  const performances = allPerfIds.map(pid => IX.perfById[pid]).filter(Boolean).sort((a, b) => (b.performance_date || '').localeCompare(a.performance_date || ''));
+  const hostedPerfs = hostedPerfIds.map(pid => IX.perfById[pid]).filter(Boolean).sort((a, b) => (b.performance_date || '').localeCompare(a.performance_date || ''));
+  const sponsoredPerfs = sponsoredPerfIds.map(pid => IX.perfById[pid]).filter(Boolean).sort((a, b) => (b.performance_date || '').localeCompare(a.performance_date || ''));
+
+  const roles = [];
+  if (hostedPerfIds.length > 0) roles.push('Host');
+  if (sponsoredPerfIds.length > 0) roles.push('Sponsor');
+
+  // Date range
+  const dates = performances.map(p => p.performance_date).filter(Boolean).sort();
+  const firstYear = dates.length > 0 ? dates[0].slice(0, 4) : '';
+  const lastYear = dates.length > 0 ? dates[dates.length - 1].slice(0, 4) : '';
+
+  // Top singers
+  const singerCount = {};
+  allPerfIds.forEach(perfId => {
+    const parts = IX.partByPerf[perfId] || [];
+    const uniquePersons = [...new Set(parts.map(pa => pa.person_id))];
+    uniquePersons.forEach(pid => {
+      const person = IX.personById[pid];
+      if (person && person.person_role === 'main performer') {
+        singerCount[pid] = (singerCount[pid] || 0) + 1;
+      }
+    });
+  });
+  const topSingers = Object.entries(singerCount).sort((a, b) => b[1] - a[1]).slice(0, 15);
+
+  // Top venues
+  const venueCount = {};
+  performances.forEach(p => {
+    if (p.venue_name) venueCount[p.venue_name] = (venueCount[p.venue_name] || 0) + 1;
+  });
+  const topVenues = Object.entries(venueCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+  function PerfGrid({ perfs, label }) {
+    if (perfs.length === 0) return null;
+    return (
+      <section style={{ padding: '40px 56px', borderTop: '1px solid var(--rule)' }}>
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● {label} ({perfs.length})</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}>
+          {perfs.slice(0, 30).map(p => {
+            const perfIdNum = p.performance_id.replace('PERF_', '');
+            return (
+              <a key={p.performance_id} href={'#/detail/' + perfIdNum} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div style={{ position: 'relative', background: '#000', aspectRatio: '3/4', overflow: 'hidden', marginBottom: 8 }}>
+                  <img src={'viewer/data/thumbnails/' + perfIdNum + '.gif'} alt={p.performance_title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'viewer/data/1024/' + perfIdNum + '.jpg'; }} />
+                </div>
+                <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)' }}>{p.performance_date}</div>
+                <div className="display-kr" style={{ fontSize: 14, marginTop: 2, lineHeight: 1.3 }}>{p.performance_title}</div>
+              </a>
+            );
+          })}
+        </div>
+        {perfs.length > 30 && <div className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 16 }}>+ {perfs.length - 30} more</div>}
+      </section>
+    );
+  }
+
+  return (
+    <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
+      <Nav2 active="Groups" />
+      <div style={{ padding: '20px 56px', borderBottom: '1px solid var(--rule)' }}>
+        <a href="#/groups" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.15em', textDecoration: 'none' }}>← GROUPS</a>
+      </div>
+
+      <section style={{ padding: '60px 56px 40px' }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          {roles.map(r => (
+            <span key={r} className="mono" style={{ fontSize: 10, letterSpacing: '0.15em', padding: '4px 10px', background: r === 'Host' ? 'var(--coral)' : '#e8c547', color: 'var(--bg-deep)' }}>{r.toUpperCase()}</span>
+          ))}
+        </div>
+        <h1 className="display-kr" style={{ fontSize: 64, lineHeight: 0.95, margin: 0, letterSpacing: '-0.02em' }}>{group.group_name}</h1>
+        <div style={{ display: 'flex', gap: 48, marginTop: 32, flexWrap: 'wrap' }}>
+          <div>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>TOTAL PERFORMANCES</div>
+            <div className="display coral" style={{ fontSize: 48, marginTop: 4 }}>{performances.length}</div>
+          </div>
+          {firstYear && (
+            <div>
+              <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>ACTIVE PERIOD</div>
+              <div className="display" style={{ fontSize: 28, marginTop: 4 }}>{firstYear} — {lastYear}</div>
+            </div>
+          )}
+          {hostedPerfIds.length > 0 && (
+            <div>
+              <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>HOSTED</div>
+              <div className="display coral" style={{ fontSize: 28, marginTop: 4 }}>{hostedPerfIds.length}</div>
+            </div>
+          )}
+          {sponsoredPerfIds.length > 0 && (
+            <div>
+              <div className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.2em' }}>SPONSORED</div>
+              <div className="display" style={{ fontSize: 28, marginTop: 4, color: '#e8c547' }}>{sponsoredPerfIds.length}</div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Top Singers + Top Venues */}
+      <section style={{ padding: '40px 56px', borderTop: '1px solid var(--rule)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 48 }}>
+        {topSingers.length > 0 && (
+          <div>
+            <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● TOP SINGERS</div>
+            {topSingers.map(([pid, count]) => {
+              const person = IX.personById[pid];
+              return (
+                <a key={pid} href={'#/singer/' + pid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
+                  <div>
+                    <span className="display-kr" style={{ fontSize: 18 }}>{person.person_name}</span>
+                    <span className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', marginLeft: 8 }}>{(person.person_medium || '').toUpperCase()}</span>
+                  </div>
+                  <span className="mono coral" style={{ fontSize: 13 }}>{count}x</span>
+                </a>
+              );
+            })}
+          </div>
+        )}
+        {topVenues.length > 0 && (
+          <div>
+            <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● TOP VENUES</div>
+            {topVenues.map(([name, count]) => (
+              <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 0', borderTop: '1px solid var(--rule)' }}>
+                <span style={{ fontSize: 15 }}>{name}</span>
+                <span className="mono coral" style={{ fontSize: 13 }}>{count}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <PerfGrid perfs={hostedPerfs} label="HOSTED PERFORMANCES" />
+      <PerfGrid perfs={sponsoredPerfs} label="SPONSORED PERFORMANCES" />
+    </div>
+  );
+}
+
 /* ================= EXPORTS ================= */
-window.KoVoxPagesRDB = { SingersRDB, SingerProfile, Repertoire, WorkDetail, Network, SearchPage, PerformancesList, DetailProgramme, ComposerDetail, ReviewSection, ContributeRDB, CalendarPage };
+window.KoVoxPagesRDB = { SingersRDB, SingerProfile, Repertoire, WorkDetail, Network, SearchPage, PerformancesList, DetailProgramme, ComposerDetail, ReviewSection, ContributeRDB, CalendarPage, GroupsList, GroupDetail };
