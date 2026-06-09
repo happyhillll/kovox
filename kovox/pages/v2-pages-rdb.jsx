@@ -944,6 +944,26 @@ function WorkDetail({ workId }) {
   });
   const topSingers = Object.entries(singerCount).sort((a, b) => b[1] - a[1]);
 
+  // Find all accompanists who performed this work
+  const accCount = {};
+  progItems.forEach(pr => {
+    if (!validPerfIds.has(pr.performance_id)) return;
+    const itemParts = IX.partByProgItem[pr.program_item_id] || [];
+    // Also check performance-level participations for accompanists
+    const perfParts = IX.partByPerf[pr.performance_id] || [];
+    const allParts = [...itemParts];
+    perfParts.forEach(pa => {
+      if (!allParts.find(a => a.person_id === pa.person_id)) allParts.push(pa);
+    });
+    allParts.forEach(pa => {
+      const person = IX.personById[pa.person_id];
+      if (person && person.person_role === 'accompanist') {
+        accCount[pa.person_id] = (accCount[pa.person_id] || 0) + 1;
+      }
+    });
+  });
+  const topAccompanists = Object.entries(accCount).sort((a, b) => b[1] - a[1]);
+
   // Sibling works (same parent)
   const siblings = work.mb_parent_work_title
     ? RDB.works.filter(w => w.mb_parent_work_title === work.mb_parent_work_title && w.work_id !== workId)
@@ -1000,7 +1020,7 @@ function WorkDetail({ workId }) {
         </section>
       )}
 
-      <section style={{ padding: '40px 56px', borderTop: '1px solid var(--rule)', display: 'grid', gridTemplateColumns: topSingers.length > 0 && siblings.length > 0 ? '1fr 1fr' : '1fr', gap: 64 }}>
+      <section style={{ padding: '40px 56px', borderTop: '1px solid var(--rule)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 64 }}>
         {topSingers.length > 0 && (
           <div>
             <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● PERFORMED BY</div>
@@ -1008,6 +1028,23 @@ function WorkDetail({ workId }) {
               const person = IX.personById[pid];
               return (
                 <a key={pid} href={'#/singer/' + pid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
+                  <div>
+                    <span className="display-kr" style={{ fontSize: 20 }}>{person.person_name}</span>
+                    <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 12 }}>{(person.person_medium || '').toUpperCase()}</span>
+                  </div>
+                  <span className="mono coral" style={{ fontSize: 13 }}>{count}x</span>
+                </a>
+              );
+            })}
+          </div>
+        )}
+        {topAccompanists.length > 0 && (
+          <div>
+            <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● ACCOMPANIED WITH</div>
+            {topAccompanists.map(([pid, count]) => {
+              const person = IX.personById[pid];
+              return (
+                <a key={pid} href={'#/person/' + pid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 0', borderTop: '1px solid var(--rule)', textDecoration: 'none', color: 'inherit' }}>
                   <div>
                     <span className="display-kr" style={{ fontSize: 20 }}>{person.person_name}</span>
                     <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 12 }}>{(person.person_medium || '').toUpperCase()}</span>
@@ -1036,13 +1073,16 @@ function WorkDetail({ workId }) {
 
       <section style={{ padding: '40px 56px 80px', borderTop: '1px solid var(--rule)' }}>
         <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● ALL PERFORMANCES ({performances.length})</div>
-        {performances.map(p => (
-          <div key={p.performance_id} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 240px', gap: 24, padding: '14px 0', borderTop: '1px solid var(--rule)', alignItems: 'baseline' }}>
-            <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.performance_date}</span>
-            <span style={{ fontSize: 15 }}>{p.performance_title}</span>
-            <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.venue_name}</span>
-          </div>
-        ))}
+        {performances.map(p => {
+          const perfIdNum = p.performance_id.replace('PERF_', '');
+          return (
+            <a key={p.performance_id} href={'#/detail/' + perfIdNum} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 240px', gap: 24, padding: '14px 0', borderTop: '1px solid var(--rule)', alignItems: 'baseline', textDecoration: 'none', color: 'inherit' }}>
+              <span className="mono" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.performance_date}</span>
+              <span style={{ fontSize: 15 }}>{p.performance_title}</span>
+              <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{p.venue_name}</span>
+            </a>
+          );
+        })}
       </section>
     </div>
   );
