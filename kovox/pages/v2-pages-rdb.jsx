@@ -2812,7 +2812,7 @@ function PerformancesList() {
   return (
     <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
       <Nav2 active="Performances" />
-      <PageHeader kicker="ALL RECITALS" title="PERFORMANCES" count={String(filtered.length)} sub="모든 독창회 목록. 공연을 클릭하면 프로그램과 출연진을 볼 수 있습니다." />
+      <PageHeader kicker="ALL RECITALS" title="PERFORMANCES" count="1319" sub="모든 독창회 목록. 공연을 클릭하면 프로그램과 출연진을 볼 수 있습니다." />
 
       <section style={{ padding: '16px 56px', borderBottom: '1px solid var(--rule)' }}>
         <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
