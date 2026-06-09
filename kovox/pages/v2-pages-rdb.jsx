@@ -2942,7 +2942,7 @@ function PerformancesList() {
 function ContributeRDB() {
   const [form, setForm] = useStateR({
     title: '', date: '', startTime: '', durationMinutes: '', venue: '',
-    host: '', sponsor: '', youtube: '',
+    host: '', sponsor: '', youtube: '', description: '',
     singerName: '', singerMedium: 'soprano', singerProfile: '',
     accName: '', accMedium: 'piano', accProfile: ''
   });
@@ -3119,6 +3119,7 @@ function ContributeRDB() {
       host: form.host,
       sponsor: form.sponsor,
       youtube: form.youtube,
+      description: form.description,
       singerName: form.singerName,
       singerMedium: form.singerMedium,
       singerProfile: form.singerProfile,
@@ -3142,6 +3143,7 @@ function ContributeRDB() {
       host: form.host || null,
       sponsor: form.sponsor || null,
       youtube: form.youtube || null,
+      description: form.description || null,
       singer: { name: form.singerName, medium: form.singerMedium, profile: form.singerProfile, linkedId: singerLinkedId },
       accompanist: form.accName ? { name: form.accName, medium: form.accMedium, profile: form.accProfile, linkedId: accLinkedId } : null,
       program: programItems,
@@ -3239,6 +3241,10 @@ function ContributeRDB() {
               <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>YOUTUBE LINK</label>
               <input value={form.youtube} onChange={e => set('youtube', e.target.value)} style={inputStyle} placeholder="https://youtube.com/watch?v=..." />
             </div>
+          </div>
+          <div>
+            <label className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.15em', display: 'block', marginBottom: 6 }}>DESCRIPTION / 공연 설명</label>
+            <textarea value={form.description} onChange={e => set('description', e.target.value)} rows="3" style={{ ...inputStyle, resize: 'vertical' }} placeholder="공연에 대한 자유로운 설명 (선택)" />
           </div>
         </div>
 
