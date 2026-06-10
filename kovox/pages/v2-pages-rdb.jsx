@@ -985,7 +985,7 @@ function WorkDetail({ workId }) {
     <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
       <Nav2 active="Works" />
       <div style={{ padding: '20px 56px', borderBottom: '1px solid var(--rule)' }}>
-        <a href="#/repertoire" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.15em', textDecoration: 'none' }}>← REPERTOIRE</a>
+        <a href="#/repertoire" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.15em', textDecoration: 'none' }}>← WORKS</a>
       </div>
 
       <section style={{ padding: '60px 56px 40px' }}>
@@ -1107,7 +1107,7 @@ function Repertoire() {
   return (
     <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
       <Nav2 active="Works" />
-      <PageHeader kicker="WORKS · TRENDS · LINEAGE" title="REPERTOIRE" count={String(RDB.works.length)} sub="한국 독창회에서 연주된 모든 악곡. 작품 계보와 레퍼토리 트렌드를 탐색하세요." />
+      <PageHeader kicker="WORKS · TRENDS · LINEAGE" title="WORKS" count={String(RDB.works.length)} sub="한국 독창회에서 연주된 모든 악곡. 작품 계보와 레퍼토리 트렌드를 탐색하세요." />
 
       <section style={{ padding: '0 56px 16px', borderBottom: '1px solid var(--rule)' }}>
         <div style={{ display: 'flex', gap: 0 }}>
