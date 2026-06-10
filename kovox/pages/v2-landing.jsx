@@ -75,7 +75,9 @@ function KineticHero() {
 const NAV_ITEMS = [
   { label: 'Performances', href: '#/performances' },
   { label: 'Singers', href: '#/singers' },
+  { label: 'Composers', href: '#/composers' },
   { label: 'Works', href: '#/repertoire' },
+  { label: 'Groups', href: '#/groups' },
   { label: 'Network', href: '#/network' },
   { label: 'Archive', href: '#/archive' },
   { label: 'About', href: '#/about' }
