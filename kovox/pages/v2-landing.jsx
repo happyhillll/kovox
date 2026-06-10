@@ -78,7 +78,7 @@ const NAV_ITEMS = [
   { label: 'Composers', href: '#/composers' },
   { label: 'Works', href: '#/repertoire' },
   { label: 'Groups', href: '#/groups' },
-  { label: 'Network', href: '#/network' },
+  { label: 'Accompanist', href: '#/network' },
   { label: 'Archive', href: '#/archive' },
   { label: 'About', href: '#/about' }
 ];

@@ -8,7 +8,7 @@ const NAV_LINKS = [
   { label: 'Composers', href: '#/composers' },
   { label: 'Works', href: '#/repertoire' },
   { label: 'Groups', href: '#/groups' },
-  { label: 'Network', href: '#/network' },
+  { label: 'Accompanist', href: '#/network' },
   { label: 'Archive', href: '#/archive' },
   { label: 'About', href: '#/about' }
 ];
@@ -21,7 +21,7 @@ const SIDEBAR_ITEMS = [
   { icon: '\u266C', label: 'Works', href: '#/repertoire' },
   { icon: '\u2394', label: 'Composers', href: '#/composers' },
   { icon: '\u2606', label: 'Groups', href: '#/groups' },
-  { icon: '\u2637', label: 'Network', href: '#/network' },
+  { icon: '\u2637', label: 'Accompanist', href: '#/network' },
   null,
   { icon: '\uD83D\uDCC5', label: 'Calendar', href: '#/calendar' },
   { icon: '\u29C9', label: 'Archive', href: '#/archive' },
