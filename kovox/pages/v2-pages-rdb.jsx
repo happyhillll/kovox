@@ -3528,6 +3528,7 @@ function ContributeRDB() {
                 <span style={{ fontSize: 14 }}>{w.mb_title || w.title_variant}</span>
                 <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 10 }}>{w.mb_composer || ''}</span>
                 <span className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)', marginLeft: 8 }}>{langName(w.mb_language)}</span>
+                <span className="mono" style={{ fontSize: 10, color: 'var(--coral)', marginLeft: 8 }}>{(window.KovoxAdmin && window.KovoxAdmin.workUsage ? window.KovoxAdmin.workUsage(w.work_id) : 0)}회</span>
               </div>
             ))}
           </div>

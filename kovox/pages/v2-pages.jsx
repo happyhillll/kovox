@@ -280,9 +280,14 @@ function Detail({ perfId }) {
           <a href="#/performances" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.15em', textDecoration: 'none' }}>← PERFORMANCES / </a>
           <span className="mono coral" style={{ fontSize: 11, letterSpacing: '0.15em' }}>№ {p.id}</span>
         </div>
-        {isAdmin && (
-          <a href={'#/edit/' + p.id} style={{ font: '600 12px/1 ui-monospace, monospace', letterSpacing: '0.05em', color: '#fff', background: '#c2410c', border: '1px solid #c2410c', borderRadius: 4, padding: '8px 16px', textDecoration: 'none' }}>✎ 공연 정보 수정</a>
-        )}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {rdb && rdb.mt20id && (
+            <a href={'https://www.kopis.or.kr/por/db/pblprfr/pblprfrView.do?menuId=MNU_00020&mt20Id=' + rdb.mt20id} target="_blank" rel="noopener noreferrer" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.1em', textDecoration: 'none', border: '1px solid var(--rule)', borderRadius: 4, padding: '7px 13px' }}>KOPIS ↗</a>
+          )}
+          {isAdmin && (
+            <a href={'#/edit/' + p.id} style={{ font: '600 12px/1 ui-monospace, monospace', letterSpacing: '0.05em', color: '#fff', background: '#c2410c', border: '1px solid #c2410c', borderRadius: 4, padding: '8px 16px', textDecoration: 'none' }}>✎ 공연 정보 수정</a>
+          )}
+        </div>
       </div>
       <section style={{ padding: '40px 56px', display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 64 }}>
         <div style={{ position: 'relative', background: '#000', overflow: 'hidden' }}>

@@ -31,6 +31,8 @@
     return fetch('https://musicbrainz.org/ws/2/work?query=' + encodeURIComponent(q) + '&fmt=json&limit=15&inc=artist-rels')
       .then(function (r) { return r.json(); }).then(function (d) { return d.works || []; });
   }
+  function workUse(id) { return (window.KovoxAdmin && window.KovoxAdmin.workUsage) ? window.KovoxAdmin.workUsage(id) : 0; }
+  var useBadge = { color: '#c2410c', marginLeft: 8, fontSize: 10, fontFamily: 'ui-monospace, monospace' };
 
   function loadOriginal(perfId) {
     var D = window.KOVOX_DATA || { performances: [] };
@@ -275,7 +277,7 @@
             h('input', { value: rowSearch.q, autoFocus: true, style: input, placeholder: '곡/작곡가 검색...', onChange: function (e) { var v = e.target.value; setRowSearch(function (s) { return Object.assign({}, s, { q: v }); }); }, onKeyDown: function (e) { if (e.key === 'Enter') runRowMb(); } }),
             exist.length ? h('div', { style: { marginTop: 6, border: '1px solid ' + C.rule, maxHeight: 180, overflowY: 'auto' } },
               h('div', { style: { font: '10px ui-monospace, monospace', color: C.soft, padding: '6px 10px' } }, '기존 곡'),
-              exist.map(function (w) { return h('div', { key: w.work_id, style: resultRow, onClick: function () { patchRow(program, setProgram, it._k, { work_id: w.work_id, title: w.mb_title || w.title_variant || '', composer: w.mb_composer || '', language: w.mb_language || '' }); setRowSearch({ k: null, q: '', mb: [], loading: false }); } }, (w.mb_title || w.title_variant), h('span', { style: { color: C.soft, marginLeft: 8, fontSize: 11 } }, w.mb_composer || '')); })) : null,
+              exist.map(function (w) { return h('div', { key: w.work_id, style: resultRow, onClick: function () { patchRow(program, setProgram, it._k, { work_id: w.work_id, title: w.mb_title || w.title_variant || '', composer: w.mb_composer || '', language: w.mb_language || '' }); setRowSearch({ k: null, q: '', mb: [], loading: false }); } }, (w.mb_title || w.title_variant), h('span', { style: { color: C.soft, marginLeft: 8, fontSize: 11 } }, w.mb_composer || ''), h('span', { style: useBadge }, workUse(w.work_id) + '회')); })) : null,
             h('div', { style: { display: 'flex', gap: 8, marginTop: 8 } }, h('button', { style: pbtn(), onClick: runRowMb }, rowSearch.loading ? '...' : 'MusicBrainz 검색')),
             rowSearch.mb.length ? h('div', { style: { marginTop: 6, border: '1px solid #6bc5f5', maxHeight: 200, overflowY: 'auto' } },
               h('div', { style: { font: '10px ui-monospace, monospace', color: '#6bc5f5', padding: '6px 10px' } }, 'MUSICBRAINZ'),
@@ -331,7 +333,7 @@
       program.length === 0 ? h('div', { style: { font: '12px ui-monospace, monospace', color: C.soft, marginBottom: 10 } }, '프로그램이 없습니다. 아래에서 곡을 추가하세요.') : null,
       h('div', { style: { marginTop: 8 } }, h('label', { style: labelS }, '+ 곡 추가 — 기존 곡 검색'),
         h('input', { value: add.q, style: input, placeholder: '곡 제목 또는 작곡가 검색...', onChange: function (e) { var v = e.target.value; setAdd(function (s) { return Object.assign({}, s, { q: v }); }); } }),
-        addExist.length ? h('div', { style: { border: '1px solid ' + C.rule, maxHeight: 200, overflowY: 'auto', background: C.deep, marginTop: 4 } }, addExist.map(function (w) { return h('div', { key: w.work_id, style: resultRow, onClick: function () { addExistingWork(w); } }, (w.mb_title || w.title_variant), h('span', { style: { color: C.soft, marginLeft: 8, fontSize: 11 } }, w.mb_composer || '')); })) : null),
+        addExist.length ? h('div', { style: { border: '1px solid ' + C.rule, maxHeight: 200, overflowY: 'auto', background: C.deep, marginTop: 4 } }, addExist.map(function (w) { return h('div', { key: w.work_id, style: resultRow, onClick: function () { addExistingWork(w); } }, (w.mb_title || w.title_variant), h('span', { style: { color: C.soft, marginLeft: 8, fontSize: 11 } }, w.mb_composer || ''), h('span', { style: useBadge }, workUse(w.work_id) + '회')); })) : null),
       h('div', { style: { marginTop: 12 } }, h('label', { style: labelS }, '+ 곡 추가 — MusicBrainz 검색'),
         h('div', { style: { display: 'flex', gap: 8 } },
           h('input', { value: add.mbq || '', style: Object.assign({}, input, { flex: 1 }), placeholder: 'MusicBrainz 검색...', onChange: function (e) { var v = e.target.value; setAdd(function (s) { return Object.assign({}, s, { mbq: v }); }); }, onKeyDown: function (e) { if (e.key === 'Enter') runAddMb(); } }),

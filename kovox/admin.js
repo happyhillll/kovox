@@ -37,6 +37,17 @@
     return Object.keys(seen).sort();
   };
 
+  // 곡(work)이 지금까지 프로그램에 몇 번 올랐는지 (누적 사용 횟수). 페이지당 1회 계산 후 캐시.
+  KovoxAdmin._workUsage = null;
+  KovoxAdmin.workUsage = function (workId) {
+    if (!KovoxAdmin._workUsage) {
+      var m = {}; var progs = (window.KOVOX_RDB && window.KOVOX_RDB.programs) || [];
+      progs.forEach(function (pr) { if (pr.work_id && pr.is_intermission !== 'TRUE') m[pr.work_id] = (m[pr.work_id] || 0) + 1; });
+      KovoxAdmin._workUsage = m;
+    }
+    return KovoxAdmin._workUsage[workId] || 0;
+  };
+
   var BTN = {
     font: '500 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace',
     letterSpacing: '0.05em', color: '#c2410c', background: 'transparent',
@@ -225,7 +236,8 @@
           h('div', { style: { maxWidth: 460 } }, matches.map(function (m) {
             return h('button', { key: m.work_id, style: RESULT, onClick: function () { relink(m); } },
               h('span', { style: { fontWeight: 500 } }, m.mb_title || m.title_variant),
-              h('span', { style: { color: 'var(--ink-soft, #a09888)', marginLeft: 8, fontSize: 11 } }, m.mb_composer || ''));
+              h('span', { style: { color: 'var(--ink-soft, #a09888)', marginLeft: 8, fontSize: 11 } }, m.mb_composer || ''),
+              h('span', { style: { color: '#c2410c', marginLeft: 8, fontSize: 10, fontFamily: 'ui-monospace, monospace' } }, KovoxAdmin.workUsage(m.work_id) + '회'));
           })),
           q.trim() && matches.length === 0 ? h('div', { style: { font: '12px ui-monospace, monospace', color: 'var(--ink-soft, #a09888)' } }, '일치하는 기존 곡 없음') : null,
           h('div', { style: { marginTop: 4, font: '11px ui-monospace, monospace', color: '#8a8478' } }, '선택하면 이 곡이 기존 work 에 연결됩니다 (엔티티 병합).')
@@ -313,7 +325,8 @@
           h('div', { style: { maxWidth: 460 } }, matches.map(function (m) {
             return h('button', { key: m.work_id, style: RESULT, onClick: function () { props.onPick({ kind: 'existing', work: m }); } },
               h('span', { style: { fontWeight: 500 } }, m.mb_title || m.title_variant),
-              h('span', { style: { color: 'var(--ink-soft, #a09888)', marginLeft: 8, fontSize: 11 } }, m.mb_composer || ''));
+              h('span', { style: { color: 'var(--ink-soft, #a09888)', marginLeft: 8, fontSize: 11 } }, m.mb_composer || ''),
+              h('span', { style: { color: '#c2410c', marginLeft: 8, fontSize: 10, fontFamily: 'ui-monospace, monospace' } }, KovoxAdmin.workUsage(m.work_id) + '회'));
           }))
         );
       } else if (mode === 'mb') {
