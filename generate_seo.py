@@ -17,7 +17,7 @@ from datetime import datetime
 from urllib.parse import quote
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_URL = "https://happyhillll.github.io"
+BASE_URL = "https://kovox.co.kr"
 DATA_FILE = os.path.join(BASE_DIR, "kovox", "data", "kovox-rdb.js")
 
 
