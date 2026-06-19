@@ -2110,7 +2110,8 @@ function DetailProgramme({ perfId }) {
   const singers = personIds.map(pid => IX.personById[pid]).filter(p => p && p.person_role === 'main performer');
   const accompanists = personIds.map(pid => IX.personById[pid]).filter(p => p && p.person_role === 'accompanist');
 
-  if (progs.length === 0 && singers.length === 0) return null;
+  const adminOn = !!(window.KovoxAdmin && window.KovoxAdmin.enabled);
+  if (progs.length === 0 && singers.length === 0 && accompanists.length === 0 && !adminOn) return null;
 
   // Group program items by composer
   const groups = [];
@@ -2130,15 +2131,78 @@ function DetailProgramme({ perfId }) {
       currentComposer = composer;
     }
     if (work) {
-      groups[groups.length - 1].works.push(work);
+      groups[groups.length - 1].works.push(Object.assign({}, work, { _programItemId: pr.program_item_id, _programOrder: pr.program_order }));
     }
   });
+
+  // 공연 맨 끝에 오는 intermission 은 의미가 없으므로 자동으로 숨김 (trailing intermission 제거)
+  while (groups.length && groups[groups.length - 1].type === 'intermission') groups.pop();
+  // 내용 없는 composer 그룹(곡이 0개)이 끝에 남으면 그 뒤의 intermission 도 정리
+  while (groups.length && groups[groups.length - 1].type === 'composer' && groups[groups.length - 1].works.length === 0) {
+    groups.pop();
+    while (groups.length && groups[groups.length - 1].type === 'intermission') groups.pop();
+  }
+
+  // 곡 추가 시 program_order 계산용: 모든 항목의 order 목록
+  const allOrders = progs.map(pr => Number(pr.program_order) || 0);
+  const allWorks = groups.filter(x => x.type === 'composer').reduce((acc, gg) => acc.concat(gg.works), []);
+  function nextOrderAfter(x) {
+    const greater = allOrders.filter(o => o > x).sort((a, b) => a - b);
+    return greater.length ? (x + greater[0]) / 2 : x + 1;
+  }
+  function composersAfter(finalWorks) {
+    return [...new Set(finalWorks.map(w => w.mb_composer).filter(n => n && n !== 'Unknown'))];
+  }
+  function insertWorkEdits(pick, afterOrder) {
+    const order = nextOrderAfter(afterOrder);
+    const itemId = window.KovoxAdmin.newId('ITEM_USER_');
+    let workId, extraWorkRow = null, composerName;
+    if (pick.kind === 'existing') {
+      workId = pick.work.work_id;
+      composerName = pick.work.mb_composer;
+    } else {
+      workId = window.KovoxAdmin.newId('WRK_USER_');
+      composerName = pick.composer || null;
+      extraWorkRow = {
+        work_id: workId, title_variant: pick.title, mb_title: pick.title,
+        mb_type: null, mb_language: pick.language || null,
+        mb_composer: composerName, mb_composer_birth_year: null, mb_composer_death_year: null,
+        mb_lyricist: null, mbid: pick.mbid || null, mb_parent_work_title: null, mbid_parent_work: null,
+      };
+    }
+    const finalWorks = allWorks.concat([{ mb_composer: composerName }]);
+    const edits = [];
+    if (extraWorkRow) edits.push({ store: 'rdb', collection: 'works', op: 'insert', rows: extraWorkRow });
+    edits.push({ store: 'rdb', collection: 'programs', op: 'insert', rows: {
+      program_item_id: itemId, performance_id: fullPerfId, work_id: workId,
+      program_order: order, is_intermission: 'FALSE',
+    } });
+    edits.push({ store: 'data', collection: 'performances', key: 'id', match: perfId, set: { composers: composersAfter(finalWorks) } });
+    window.KovoxAdmin.applyAndReload(edits);
+  }
+  function deleteWorkEdits(w) {
+    const finalWorks = allWorks.filter(x => x._programItemId !== w._programItemId);
+    window.KovoxAdmin.applyAndReload([
+      { store: 'rdb', collection: 'programs', op: 'delete', key: 'program_item_id', match: w._programItemId },
+      { store: 'rdb', collection: 'participations', op: 'delete', key: 'program_item_id', match: w._programItemId, allowEmpty: true },
+      { store: 'data', collection: 'performances', key: 'id', match: perfId, set: { composers: composersAfter(finalWorks) } },
+    ]);
+  }
+  function moveRole(person, newRole) {
+    const perfCount = new Set((IX.partByPerson[person.person_id] || []).map(x => x.performance_id)).size;
+    const roleKr = newRole === 'accompanist' ? 'ACCOMPANIST(반주/협연)' : 'SINGER(main performer)';
+    let msg = person.person_name + ' 의 역할을 ' + roleKr + ' 로 변경할까요?';
+    if (perfCount > 1) msg += '\n\n⚠ 이 사람은 ' + perfCount + '개 공연에 등장하며, 역할은 사람 단위로 저장되므로 모든 공연에 함께 반영됩니다.';
+    if (!window.confirm(msg)) return;
+    window.KovoxAdmin.applyAndReload([{ store: 'rdb', collection: 'persons', key: 'person_id', match: person.person_id, set: { person_role: newRole } }]);
+  }
+  const roleBtnStyle = { font: '500 11px/1 ui-monospace, monospace', color: '#c2410c', background: 'transparent', border: '1px solid #c2410c', borderRadius: 4, padding: '4px 9px', cursor: 'pointer', marginTop: 8 };
 
   return (
     <div>
       {/* Participants */}
-      <section style={{ padding: '0 56px 40px', display: 'grid', gridTemplateColumns: accompanists.length > 0 ? '1fr 1fr' : '1fr', gap: 48 }}>
-        {singers.length > 0 && (
+      <section style={{ padding: '0 56px 40px', display: 'grid', gridTemplateColumns: (accompanists.length > 0 || adminOn) ? '1fr 1fr' : '1fr', gap: 48 }}>
+        {(singers.length > 0 || adminOn) && (
           <div>
             <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● SINGER</div>
             {singers.map(s => (
@@ -2148,29 +2212,64 @@ function DetailProgramme({ perfId }) {
                   <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 12 }}>{(s.person_medium || '').toUpperCase()}</span>
                 </a>
                 {s.person_profile && (
-                  <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.7, marginTop: 8, maxWidth: 600 }}>{s.person_profile}</p>
+                  <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.7, marginTop: 8, maxWidth: 600, whiteSpace: 'pre-line' }}>{s.person_profile}</p>
+                )}
+                {window.KovoxAdmin && React.createElement(window.KovoxAdmin.Editable, {
+                  value: s.person_profile || '',
+                  multiline: true,
+                  label: 'singer 정보 수정',
+                  hint: '줄바꿈(Enter)이 그대로 화면에 반영됩니다. · ' + s.person_name + ' (' + s.person_id + ')',
+                  onSave: (v) => window.KovoxAdmin.applyAndReload([{ store: 'rdb', collection: 'persons', key: 'person_id', match: s.person_id, set: { person_profile: v } }]),
+                })}
+                {window.KovoxAdmin && window.KovoxAdmin.enabled && (
+                  <div><button style={roleBtnStyle} onClick={() => moveRole(s, 'accompanist')}>→ ACCOMPANIST 로 이동</button></div>
                 )}
               </div>
             ))}
+            {adminOn && React.createElement(window.KovoxAdmin.PerformerAdder, { role: 'main performer', fullPerfId })}
           </div>
         )}
-        {accompanists.length > 0 && (
+        {(accompanists.length > 0 || adminOn) && (
           <div>
             <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● ACCOMPANIST</div>
             {accompanists.map(a => (
-              <a key={a.person_id} href={'#/person/' + a.person_id} className="kv-link" style={{ display: 'block', textDecoration: 'none', color: 'inherit', marginBottom: 8 }}>
-                <span className="display-kr" style={{ fontSize: 32 }}>{a.person_name}</span>
-                <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 12 }}>{(a.person_medium || '').toUpperCase()}</span>
-              </a>
+              <div key={a.person_id} style={{ marginBottom: 16 }}>
+                <a href={'#/person/' + a.person_id} className="kv-link" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+                  <span className="display-kr" style={{ fontSize: 32 }}>{a.person_name}</span>
+                  <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', marginLeft: 12 }}>{(a.person_medium || '').toUpperCase()}</span>
+                </a>
+                {a.person_profile && (
+                  <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.7, marginTop: 8, maxWidth: 600, whiteSpace: 'pre-line' }}>{a.person_profile}</p>
+                )}
+                {window.KovoxAdmin && React.createElement(window.KovoxAdmin.Editable, {
+                  value: a.person_profile || '',
+                  multiline: true,
+                  label: a.person_profile ? 'accompanist 정보 수정' : 'accompanist 정보 추가',
+                  hint: '이 반주자의 프로필은 다른 공연에도 함께 반영됩니다. · ' + a.person_name + ' (' + a.person_id + ')',
+                  onSave: (v) => window.KovoxAdmin.applyAndReload([{ store: 'rdb', collection: 'persons', key: 'person_id', match: a.person_id, set: { person_profile: v } }]),
+                })}
+                {window.KovoxAdmin && window.KovoxAdmin.enabled && (
+                  <div><button style={roleBtnStyle} onClick={() => moveRole(a, 'main performer')}>→ SINGER 로 이동</button></div>
+                )}
+              </div>
             ))}
+            {adminOn && React.createElement(window.KovoxAdmin.PerformerAdder, { role: 'accompanist', fullPerfId })}
           </div>
         )}
       </section>
 
       {/* Programme */}
-      {groups.length > 0 && (
+      {(groups.length > 0 || adminOn) && (
         <section style={{ padding: '40px 56px 40px', borderTop: '1px solid var(--rule)' }}>
           <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 24 }}>● PROGRAMME</div>
+          {groups.length === 0 && adminOn && (
+            <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginBottom: 12 }}>이 공연은 프로그램 정보가 없습니다. 아래 버튼으로 곡을 추가하세요.</div>
+          )}
+          {window.KovoxAdmin && window.KovoxAdmin.enabled && React.createElement(InsertSlot, {
+            afterOrder: (allOrders.length ? Math.min(...allOrders) : 1) - 1,
+            onInsert: insertWorkEdits,
+            label: '+ 맨 앞에 곡 추가',
+          })}
           {groups.map((g, gi) => {
             if (g.type === 'intermission') {
               return (
@@ -2187,17 +2286,72 @@ function DetailProgramme({ perfId }) {
                     <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)' }}>({g.birthYear}–{g.deathYear || ''})</span>
                   )}
                 </a>
+                {window.KovoxAdmin && React.createElement(window.KovoxAdmin.ComposerPicker, {
+                  current: g.name,
+                  onSave: (name) => {
+                    const workIds = g.works.map(w => w.work_id).filter(Boolean);
+                    const newComposers = [...new Set(
+                      groups.filter(x => x.type === 'composer')
+                        .map(x => x === g ? name : x.name)
+                        .filter(n => n && n !== 'Unknown')
+                    )];
+                    window.KovoxAdmin.applyAndReload([
+                      { store: 'rdb', collection: 'works', key: 'work_id', match: workIds, set: { mb_composer: name } },
+                      { store: 'data', collection: 'performances', key: 'id', match: perfId, set: { composers: newComposers } },
+                    ]);
+                  },
+                })}
                 {g.works.map((w, wi) => (
-                  <a key={wi} href={'#/work/' + w.work_id} className="kv-link" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 0 8px 24px', textDecoration: 'none', color: 'inherit' }}>
-                    <span style={{ fontSize: 15 }}>{w.mb_title || w.title_variant}</span>
-                    <span className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)' }}>{langName(w.mb_language)}</span>
-                  </a>
+                  <div key={wi}>
+                    <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                      <a href={'#/work/' + w.work_id} className="kv-link" style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 0 8px 24px', textDecoration: 'none', color: 'inherit' }}>
+                        <span style={{ fontSize: 15 }}>{w.mb_title || w.title_variant}</span>
+                        <span className="mono" style={{ fontSize: 10, color: 'var(--ink-soft)' }}>{langName(w.mb_language)}</span>
+                      </a>
+                      {window.KovoxAdmin && window.KovoxAdmin.enabled && (
+                        <button
+                          style={{ font: '500 11px/1 ui-monospace, monospace', color: '#b91c1c', background: 'transparent', border: '1px solid #b91c1c', borderRadius: 4, padding: '3px 8px', cursor: 'pointer', marginLeft: 12, whiteSpace: 'nowrap' }}
+                          onClick={() => { if (window.confirm('이 곡을 프로그램에서 삭제할까요?\n\n' + (w.mb_title || w.title_variant || ''))) deleteWorkEdits(w); }}
+                        >🗑 삭제</button>
+                      )}
+                    </div>
+                    {window.KovoxAdmin && React.createElement(window.KovoxAdmin.WorkEditor, { work: w })}
+                    {window.KovoxAdmin && window.KovoxAdmin.enabled && React.createElement(InsertSlot, {
+                      afterOrder: Number(w._programOrder) || 0,
+                      onInsert: insertWorkEdits,
+                      label: '+ 이 곡 다음에 추가',
+                    })}
+                  </div>
                 ))}
               </div>
             );
           })}
         </section>
       )}
+    </div>
+  );
+}
+
+/* ================= ADMIN: 곡 추가 슬롯 ================= */
+function InsertSlot({ afterOrder, onInsert, label }) {
+  const [open, setOpen] = useStateR(false);
+  if (!window.KovoxAdmin || !window.KovoxAdmin.enabled) return null;
+  if (!open) {
+    return (
+      <div style={{ paddingLeft: 24, margin: '2px 0 8px' }}>
+        <button
+          style={{ font: '500 11px/1 ui-monospace, monospace', color: '#c2410c', background: 'transparent', border: '1px dashed #c2410c', borderRadius: 4, padding: '4px 10px', cursor: 'pointer' }}
+          onClick={() => setOpen(true)}
+        >{label || '+ 곡 추가'}</button>
+      </div>
+    );
+  }
+  return (
+    <div style={{ paddingLeft: 24 }}>
+      {React.createElement(window.KovoxAdmin.WorkPicker, {
+        onCancel: () => setOpen(false),
+        onPick: (pick) => { setOpen(false); onInsert(pick, afterOrder); },
+      })}
     </div>
   );
 }

@@ -1,0 +1,7 @@
+# 로컬 관리자 서버가 저장 시 생성하는 백업/임시 파일
+*.bak
+*.tmp
+kovox/data/_backups/
+
+# macOS
+.DS_Store

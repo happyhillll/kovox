@@ -33,6 +33,11 @@ function App() {
     const name = route.replace('#/composer/', '');
     return <ComposerDetail composerName={name} />;
   }
+  if (route.startsWith('#/edit/')) {
+    const id = route.replace('#/edit/', '');
+    const EditPerformance = window.KoVoxEdit && window.KoVoxEdit.EditPerformance;
+    return EditPerformance ? <EditPerformance perfId={id} /> : <Detail perfId={id} />;
+  }
   if (route.startsWith('#/detail/')) {
     const id = route.replace('#/detail/', '');
     return <Detail perfId={id} />;

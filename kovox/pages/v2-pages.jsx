@@ -249,13 +249,40 @@ function Detail({ perfId }) {
   const youtubeUrl = (rdb && rdb._youtube) || null;
   const youtubeId = getYoutubeId(youtubeUrl);
   const brochures = (rdb && rdb._brochures) || [];
+  const isAdmin = !!(window.KovoxAdmin && window.KovoxAdmin.enabled);
+
+  function saveHeaderField(which, raw) {
+    const v = (raw == null ? '' : String(raw)).trim();
+    const edits = [];
+    const rdbMatch = rdb ? rdb.performance_id : null;
+    if (which === 'DATE') {
+      edits.push({ store: 'data', collection: 'performances', key: 'id', match: perfId, set: { date: v } });
+      if (rdbMatch) edits.push({ store: 'rdb', collection: 'performances', key: 'performance_id', match: rdbMatch, set: { performance_date: v.replace(/\./g, '-') } });
+    } else if (which === 'START') {
+      edits.push({ store: 'data', collection: 'performances', key: 'id', match: perfId, set: { time: v } });
+      if (rdbMatch) edits.push({ store: 'rdb', collection: 'performances', key: 'performance_id', match: rdbMatch, set: { start_time: v || null } });
+    } else if (which === 'DURATION') {
+      const num = parseInt(v.replace(/[^0-9]/g, ''), 10);
+      if (!rdbMatch) { alert('이 공연은 RDB 레코드가 없어 duration 을 저장할 수 없습니다.'); return; }
+      edits.push({ store: 'rdb', collection: 'performances', key: 'performance_id', match: rdbMatch, set: { duration_minutes: isNaN(num) ? null : num } });
+    } else if (which === 'VENUE') {
+      edits.push({ store: 'data', collection: 'performances', key: 'id', match: perfId, set: { venue: v } });
+      if (rdbMatch) edits.push({ store: 'rdb', collection: 'performances', key: 'performance_id', match: rdbMatch, set: { venue_name: v } });
+    }
+    if (edits.length) window.KovoxAdmin.applyAndReload(edits);
+  }
 
   return (
     <div className="kv2" style={{ width: '100%', maxWidth: 1440, margin: '0 auto', minHeight: '100vh' }}>
       <Nav2 />
-      <div style={{ padding: '20px 56px', borderBottom: '1px solid var(--rule)' }}>
-        <a href="#/performances" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.15em', textDecoration: 'none' }}>← PERFORMANCES / </a>
-        <span className="mono coral" style={{ fontSize: 11, letterSpacing: '0.15em' }}>№ {p.id}</span>
+      <div style={{ padding: '20px 56px', borderBottom: '1px solid var(--rule)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <a href="#/performances" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.15em', textDecoration: 'none' }}>← PERFORMANCES / </a>
+          <span className="mono coral" style={{ fontSize: 11, letterSpacing: '0.15em' }}>№ {p.id}</span>
+        </div>
+        {isAdmin && (
+          <a href={'#/edit/' + p.id} style={{ font: '600 12px/1 ui-monospace, monospace', letterSpacing: '0.05em', color: '#fff', background: '#c2410c', border: '1px solid #c2410c', borderRadius: 4, padding: '8px 16px', textDecoration: 'none' }}>✎ 공연 정보 수정</a>
+        )}
       </div>
       <section style={{ padding: '40px 56px', display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 64 }}>
         <div style={{ position: 'relative', background: '#000', overflow: 'hidden' }}>
@@ -268,41 +295,51 @@ function Detail({ perfId }) {
             {p.title}
           </h1>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 40, paddingTop: 24, borderTop: '1px solid var(--rule)' }}>
-            {[['DATE', p.date], ['START', startTime], ['DURATION', duration], ['VENUE', p.venue]].map(([k, v]) => (
+            {[
+              { k: 'DATE', v: p.date, raw: p.date },
+              { k: 'START', v: startTime, raw: (rdb && rdb.start_time) || p.time || '' },
+              { k: 'DURATION', v: duration, raw: (rdb && rdb.duration_minutes) || '' },
+              { k: 'VENUE', v: p.venue, raw: p.venue },
+            ].map(({ k, v, raw }) => (
               <div key={k}>
                 <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>{k}</div>
                 <div className="display" style={{ fontSize: 20, marginTop: 6 }}>{v}</div>
+                {isAdmin && React.createElement(window.KovoxAdmin.Editable, {
+                  value: String(raw == null ? '' : raw),
+                  label: '수정',
+                  onSave: (nv) => saveHeaderField(k, nv),
+                })}
               </div>
             ))}
           </div>
-          {(host || sponsor) && (() => {
+          {(host || sponsor || isAdmin) && (() => {
             const RDB = window.KOVOX_RDB;
-            const perfId = rdb ? rdb.performance_id : ('PERF_' + p.id);
-            const pgs = (RDB && RDB.perfGroups) ? RDB.perfGroups.filter(pg => pg.performance_id === perfId) : [];
+            const fullPerfId = rdb ? rdb.performance_id : ('PERF_' + p.id);
+            const pgs = (RDB && RDB.perfGroups) ? RDB.perfGroups.filter(pg => pg.performance_id === fullPerfId) : [];
             const hostGroups = pgs.filter(pg => pg.role === 'Host').map(pg => RDB.groups && RDB.groups.find(g => g.group_id === pg.group_id)).filter(Boolean);
             const sponsorGroups = pgs.filter(pg => pg.role === 'Sponsor').map(pg => RDB.groups && RDB.groups.find(g => g.group_id === pg.group_id)).filter(Boolean);
+
+            const orgCol = (label, role, value, groupsArr, field) => (
+              <div>
+                <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>{label}</div>
+                <div style={{ fontSize: 15, marginTop: 6, lineHeight: 1.4 }}>
+                  {groupsArr.length > 0
+                    ? groupsArr.map((g, i) => (<span key={g.group_id}>{i > 0 && ', '}<a href={'#/group/' + g.group_id} style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>{g.group_name}</a></span>))
+                    : (value || (isAdmin ? <span style={{ color: 'var(--ink-soft)' }}>—</span> : null))}
+                </div>
+                {isAdmin && React.createElement(window.KovoxAdmin.GroupEditor, {
+                  role, fullPerfId, perfRdbId: rdb ? rdb.performance_id : null,
+                  groups: groupsArr, legacy: value || '', legacyField: field,
+                })}
+              </div>
+            );
+
+            const showHost = host || hostGroups.length > 0 || isAdmin;
+            const showSponsor = sponsor || sponsorGroups.length > 0 || isAdmin;
             return (
-              <div style={{ display: 'grid', gridTemplateColumns: host && sponsor ? '1fr 1fr' : '1fr', gap: 16, marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--rule)' }}>
-                {host && (
-                  <div>
-                    <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>HOST</div>
-                    <div style={{ fontSize: 15, marginTop: 6, lineHeight: 1.4 }}>
-                      {hostGroups.length > 0 ? hostGroups.map((g, i) => (
-                        <span key={g.group_id}>{i > 0 && ', '}<a href={'#/group/' + g.group_id} style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>{g.group_name}</a></span>
-                      )) : host}
-                    </div>
-                  </div>
-                )}
-                {sponsor && (
-                  <div>
-                    <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-soft)' }}>SPONSOR</div>
-                    <div style={{ fontSize: 15, marginTop: 6, lineHeight: 1.4 }}>
-                      {sponsorGroups.length > 0 ? sponsorGroups.map((g, i) => (
-                        <span key={g.group_id}>{i > 0 && ', '}<a href={'#/group/' + g.group_id} style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>{g.group_name}</a></span>
-                      )) : sponsor}
-                    </div>
-                  </div>
-                )}
+              <div style={{ display: 'grid', gridTemplateColumns: showHost && showSponsor ? '1fr 1fr' : '1fr', gap: 16, marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--rule)' }}>
+                {showHost && orgCol('HOST', 'Host', host, hostGroups, 'host_organization')}
+                {showSponsor && orgCol('SPONSOR', 'Sponsor', sponsor, sponsorGroups, 'sponsoring_organization')}
               </div>
             );
           })()}
@@ -336,8 +373,12 @@ function Detail({ perfId }) {
 
 /* ================= DETAIL IMAGES (ephemera) ================= */
 function DetailImages({ perfId }) {
+  const perf = D.performances.find(x => String(x.id) === String(perfId));
+  const hidden = !!(perf && perf.hide_detail_images);
+  const isAdmin = !!(window.KovoxAdmin && window.KovoxAdmin.enabled);
   const [images, setImages] = React.useState([]);
   React.useEffect(() => {
+    if (hidden) { setImages([]); return; }
     const candidates = [
       'viewer/data/1024/' + perfId + '.jpg',
       'viewer/data/detail_images/' + perfId + '.jpg',
@@ -357,11 +398,27 @@ function DetailImages({ perfId }) {
       loaded.sort((a, b) => a.order - b.order);
       setImages(loaded.map(l => l.src));
     }
-  }, [perfId]);
+  }, [perfId, hidden]);
+
+  const adminToggle = isAdmin ? (
+    <button
+      style={{ font: '500 11px/1 ui-monospace, monospace', letterSpacing: '0.05em', color: '#c2410c', background: 'transparent', border: '1px solid #c2410c', borderRadius: 4, padding: '3px 8px', cursor: 'pointer', marginLeft: 12, verticalAlign: 'middle' }}
+      onClick={() => window.KovoxAdmin.applyAndReload([{ store: 'data', collection: 'performances', key: 'id', match: perfId, set: { hide_detail_images: !hidden } }])}
+    >{hidden ? '✎ detail images 복원' : '✎ detail images 숨기기'}</button>
+  ) : null;
+
+  if (hidden) {
+    if (!isAdmin) return null;
+    return (
+      <section style={{ padding: '0 56px 40px' }}>
+        <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● DETAIL IMAGES <span style={{ color: 'var(--ink-soft)' }}>(숨김)</span>{adminToggle}</div>
+      </section>
+    );
+  }
   if (images.length === 0) return null;
   return (
     <section style={{ padding: '0 56px 40px' }}>
-      <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● DETAIL IMAGES</div>
+      <div className="mono coral" style={{ fontSize: 12, letterSpacing: '0.25em', marginBottom: 16 }}>● DETAIL IMAGES{adminToggle}</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
         {images.map((src, i) => (
           <img key={i} src={src} alt={'Detail ' + (i + 1)} style={{ width: '100%', height: 'auto', display: 'block', border: '1px solid var(--rule)' }} />
