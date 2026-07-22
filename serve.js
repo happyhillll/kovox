@@ -98,6 +98,26 @@ function applyEdits(edits) {
       const before = coll.length;
       loaded[e.store][e.collection] = coll.filter(row => !pred(row));
       if (loaded[e.store][e.collection].length === before && !e.allowEmpty) throw new Error('삭제할 행 없음: ' + e.collection + ' ' + JSON.stringify(e.where || (e.key + '=' + e.match)));
+    } else if (op === 'mergePerson') {
+      // 동명이인 통합: fromId 의 모든 participations 를 toId 로 이전(중복 제거) 후 fromId person 삭제
+      const db = loaded[e.store];
+      const from = e.fromId, to = e.toId;
+      if (!from || !to || from === to) throw new Error('mergePerson: fromId/toId 가 잘못되었습니다');
+      if (!Array.isArray(db.persons) || !Array.isArray(db.participations)) throw new Error('mergePerson: persons/participations 테이블이 없습니다');
+      if (!db.persons.some(p => p.person_id === to)) throw new Error('mergePerson: 유지할 인물이 없습니다: ' + to);
+      if (!db.persons.some(p => p.person_id === from)) throw new Error('mergePerson: 통합 대상 인물이 없습니다: ' + from);
+      const seen = new Set(db.participations.filter(p => p.person_id === to).map(p => p.performance_id + '|' + p.program_item_id));
+      const out = [];
+      for (const p of db.participations) {
+        if (p.person_id === from) {
+          const k = p.performance_id + '|' + p.program_item_id;
+          if (seen.has(k)) continue; // toId 가 이미 같은 항목에 참여 → 중복 제거
+          seen.add(k);
+          out.push(Object.assign({}, p, { person_id: to }));
+        } else { out.push(p); }
+      }
+      db.participations = out;
+      db.persons = db.persons.filter(p => p.person_id !== from);
     } else { // set
       const matches = (Array.isArray(e.match) ? e.match : [e.match]).map(String);
       let n = 0;

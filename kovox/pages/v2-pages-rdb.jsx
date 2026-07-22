@@ -996,8 +996,8 @@ function WorkDetail({ workId }) {
         )}
         <h1 className="display" style={{ fontSize: 64, lineHeight: 0.95, margin: 0, letterSpacing: '-0.02em' }}>{(work.mb_title || work.title_variant || '').toUpperCase()}</h1>
         {work.mbid && (
-          <a href={'https://musicbrainz.org/work/' + work.mbid} target="_blank" rel="noopener noreferrer" className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.1em', textDecoration: 'none', display: 'inline-block', marginTop: 12, border: '1px solid var(--rule)', padding: '6px 12px' }}>
-            MusicBrainz ↗
+          <a href={'https://musicbrainz.org/work/' + work.mbid} target="_blank" rel="noopener noreferrer" className="mono" title="Open this work on MusicBrainz" style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.08em', textDecoration: 'none', display: 'inline-block', marginTop: 12, border: '1px solid var(--rule)', padding: '6px 12px' }}>
+            MusicBrainz ID: <span style={{ color: 'var(--ink)' }}>{work.mbid}</span> ↗
           </a>
         )}
         <div style={{ display: 'flex', gap: 48, marginTop: 32, flexWrap: 'wrap' }}>
@@ -2224,6 +2224,7 @@ function DetailProgramme({ perfId }) {
                 {window.KovoxAdmin && window.KovoxAdmin.enabled && (
                   <div><button style={roleBtnStyle} onClick={() => moveRole(s, 'accompanist')}>→ ACCOMPANIST 로 이동</button></div>
                 )}
+                {adminOn && React.createElement(window.KovoxAdmin.PerformerControls, { person: s, fullPerfId, roleLabel: 'SINGER' })}
               </div>
             ))}
             {adminOn && React.createElement(window.KovoxAdmin.PerformerAdder, { role: 'main performer', fullPerfId })}
@@ -2251,6 +2252,7 @@ function DetailProgramme({ perfId }) {
                 {window.KovoxAdmin && window.KovoxAdmin.enabled && (
                   <div><button style={roleBtnStyle} onClick={() => moveRole(a, 'main performer')}>→ SINGER 로 이동</button></div>
                 )}
+                {adminOn && React.createElement(window.KovoxAdmin.PerformerControls, { person: a, fullPerfId, roleLabel: 'ACCOMPANIST' })}
               </div>
             ))}
             {adminOn && React.createElement(window.KovoxAdmin.PerformerAdder, { role: 'accompanist', fullPerfId })}
