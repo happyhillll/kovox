@@ -109,7 +109,7 @@ function NavL() {
 function Landing() {
   const RDB = window.KOVOX_RDB;
   const rdbStats = RDB ? {
-    totalPerfs: 1319,
+    totalPerfs: RDB.performances.length,
     totalSingers: RDB.persons.filter(p => p.person_role === 'main performer').length,
     totalAccompanists: RDB.persons.filter(p => p.person_role === 'accompanist').length,
     totalWorks: RDB.works.length,
