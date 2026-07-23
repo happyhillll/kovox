@@ -159,6 +159,15 @@ const server = http.createServer((req, res) => {
   const filePath = path.normalize(path.join(ROOT, urlPath));
   if (!filePath.startsWith(ROOT)) { res.writeHead(403); res.end('forbidden'); return; }
   fs.stat(filePath, (err, st) => {
+    if (!err && st.isDirectory()) {
+      // 디렉터리 URL(viewer/ 등)은 그 안의 index.html 로 (GitHub Pages 와 동일 동작)
+      const idx = path.join(filePath, 'index.html');
+      return fs.stat(idx, (e2, s2) => {
+        if (e2 || !s2.isFile()) { res.writeHead(404); res.end('not found'); return; }
+        res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store, no-cache, must-revalidate' });
+        fs.createReadStream(idx).pipe(res);
+      });
+    }
     if (err || !st.isFile()) { res.writeHead(404); res.end('not found'); return; }
     // 저장 후 새로고침 시 항상 최신 데이터/JSX 를 읽도록 캐시 비활성화 (로컬 편집 전용 서버)
     res.writeHead(200, {
