@@ -320,7 +320,8 @@ function Landing() {
     <div className="kv2" style={{ width: '100%', minHeight: '100vh', background: 'var(--bg)' }}>
       <NavL />
       <main>
-        <Hero total={D.total} prog={prog} />
+        {/* 히어로 카운터는 고정값 표시 (전체 집계와 별도) */}
+        <Hero total={1319} prog={prog} />
         <Ticker items={tickerItems} />
 
         {/* STAT GRID */}
